@@ -1,4 +1,4 @@
-# table-kit
+# tablekit
 
 Headless table primitives for the modern web — framework-free state engine, row pipeline, column model, PivotTable support, and first-class React adapters.
 
