@@ -16,8 +16,28 @@ const meta = {
   parameters: {
     docs: {
       description: {
-        component:
-          'Rendered, virtualized data grids backed by either local rows or the public async DataSource contract.',
+        component: `A rendered, virtualized data grid for local rows or the public asynchronous \`DataSource\` contract. The component owns the DOM rendering while preserving Tablekit's controlled and uncontrolled state slices.
+
+### Install
+
+\`\`\`bash
+npm install @lynellf/tablekit-core @lynellf/tablekit-react
+\`\`\`
+
+Import \`@lynellf/tablekit-react/styles.css\` once in the application that renders the grid.
+
+### Choose the data path
+
+- **Client data** passes \`rows\` directly. Tablekit performs sorting, filtering, and pagination in memory.
+- **Server data** passes a \`dataSource\` with declared capabilities. The grid sends canonical sort, filter, pagination, cursor, and data-version inputs to that boundary.
+
+### Interaction and state
+
+Column definitions opt into sorting and filtering. Selection, pagination, pinning, sizing, visibility, and focus can begin in \`initialState\`, or be controlled with the corresponding state slice and change callback. Row and cell callbacks receive the resolved source row plus stable row and column identifiers.
+
+### Accessibility and layout
+
+\`DataGrid\` renders an ARIA grid with named sort buttons, labeled filters, keyboard focus management, and a live announcer. Rows and center columns are virtualized; pinned columns remain mounted at the viewport edges.`,
       },
     },
   },
@@ -52,6 +72,10 @@ export const ClientData: Story = {
   parameters: {
     packagePaths: ['@lynellf/tablekit-react', '@lynellf/tablekit-react/styles.css'],
     docs: {
+      description: {
+        story:
+          'All 240 rows live in memory. Use the controls to change viewport height, page size, and selection mode, then try filtering or sorting a pinned column. The event panel shows the row and cell callbacks produced by real interaction.',
+      },
       source: {
         code: clientDataGridSource,
         language: 'tsx',
@@ -71,6 +95,10 @@ export const ServerData: Story = {
       exclude: ['pageSize', 'rowSelectionMode'],
     },
     docs: {
+      description: {
+        story:
+          'This example simulates a remote service with server-owned sorting, filtering, and offset pagination. The request monitor exposes accepted request counts so changes can be checked for duplicate or stale fetches.',
+      },
       source: {
         code: serverDataGridSource,
         language: 'tsx',

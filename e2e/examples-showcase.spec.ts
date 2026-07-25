@@ -90,4 +90,58 @@ test.describe('Tablekit Storybook', () => {
     await expect(serverGrid.getByRole('button', { name: 'Expand North' })).toBeVisible();
     await expect(pageErrors).toEqual([]);
   });
+
+  test('documents PivotGrid installation, configuration, and sorting behavior', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+
+    await page.goto('/?path=/docs/components-pivotgrid--docs');
+
+    const preview = page.frameLocator('#storybook-preview-iframe');
+    await expect(preview.getByRole('heading', { name: 'Install' })).toBeVisible();
+    await expect(preview.getByRole('heading', { name: 'Configure the pivot' })).toBeVisible();
+    await expect(preview.getByRole('heading', { name: 'Sorting' })).toBeVisible();
+    await expect(
+      preview.getByText('@lynellf/tablekit-pivot', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(preview.getByText(/header-click sorting is not currently wired/i)).toBeVisible();
+    await expect(pageErrors).toEqual([]);
+  });
+
+  test('reconfigures pivot hierarchies, filters, and aggregation from Storybook controls', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+
+    await page.goto('/?path=/story/components-pivotgrid--client-data');
+
+    await page
+      .getByRole('combobox', { name: 'primaryRowField' })
+      .selectOption({ label: 'Channel' });
+    await page
+      .getByRole('combobox', { name: 'secondaryRowField' })
+      .selectOption({ label: 'Region' });
+    await page
+      .getByRole('combobox', { name: 'primaryColumnField' })
+      .selectOption({ label: 'Quarter' });
+    await page
+      .getByRole('combobox', { name: 'secondaryColumnField' })
+      .selectOption({ label: 'Year' });
+    await page.getByRole('combobox', { name: 'regionFilter' }).selectOption({ label: 'North' });
+    await page.getByRole('combobox', { name: 'measure' }).selectOption({ label: 'Margin' });
+    await page.getByRole('combobox', { name: 'aggregation' }).selectOption({ label: 'Average' });
+
+    const preview = page.frameLocator('#storybook-preview-iframe');
+    const grid = preview.getByRole('treegrid', { name: 'Client revenue pivot grid' });
+    await expect(grid.getByRole('button', { name: 'Expand Direct' })).toBeVisible();
+    await expect(grid.getByRole('columnheader', { name: 'Q1' })).toBeVisible();
+    await expect(preview.getByText('Channel → Region', { exact: true })).toBeVisible();
+    await expect(preview.getByText('Quarter → Year', { exact: true })).toBeVisible();
+    await expect(preview.getByText('Average of Margin', { exact: true })).toBeVisible();
+    await expect(preview.getByText('Region = North', { exact: true })).toBeVisible();
+    await expect(pageErrors).toEqual([]);
+  });
 });
