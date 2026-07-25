@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] — 2026-07-25
+
+### Added
+
+- **Enhanced DataGrid controls** — Added the opt-in `columnControls` API for column menus, sort commands, pinning, visibility, layout reset, native drag-and-drop reorder, and an announced keyboard grab workflow.
+- **PivotGrid field builder** — Added the opt-in `pivotControls` API with configurable field metadata, panel placement, row and column hierarchies, values, aggregation selection, filters, and dependency-free drag-and-drop.
+- **Storybook verification examples** — Added copyable enhanced DataGrid and built-in PivotGrid configurator stories with browser coverage.
+
+### Changed
+
+- **Migration guides and agent skills** — Refreshed the AG Grid and Webix DataGrid/Pivot mappings for the rendered v2.1 React surface and current package boundaries.
+- **Recipes** — Updated column reorder recipes to prefer the built-in dependency-free controls and clarified when headless layout recipes remain appropriate.
+- **Package versions** — Advanced the root workspace and all four published packages in lockstep to `2.1.0`.
+
+### Fixed
+
+- **Column-menu layout** — Positioned long column menus against the viewport so visibility controls remain usable outside the virtualized header bounds.
+
 ## [1.1.0] — 2026-07-11
 
 ### Added

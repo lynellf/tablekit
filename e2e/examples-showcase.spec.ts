@@ -71,6 +71,23 @@ test.describe('Tablekit Storybook', () => {
     await expect(pageErrors).toEqual([]);
   });
 
+  test('runs the opt-in DataGrid column workspace', async ({ page }) => {
+    await page.goto('/iframe.html?id=components-datagrid--enhanced-controls&viewMode=story');
+
+    const grid = page.getByRole('grid', { name: 'Enhanced client sales data grid' });
+    await grid.getByRole('button', { name: 'Column controls for Product' }).click();
+    await page.getByRole('button', { name: 'Sort Product descending' }).click();
+    await expect(grid.getByRole('columnheader', { name: /Product/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+
+    await page.getByRole('checkbox', { name: 'Show Owner' }).uncheck();
+    await expect(grid.getByRole('columnheader', { name: /Owner/ })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Reset columns' }).click();
+    await expect(grid.getByRole('columnheader', { name: /Owner/ })).toBeVisible();
+  });
+
   test('runs the client, worker, and server pivot engines', async ({ page }) => {
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -101,7 +118,7 @@ test.describe('Tablekit Storybook', () => {
 
     const preview = page.frameLocator('#storybook-preview-iframe');
     await expect(preview.getByRole('heading', { name: 'Install' })).toBeVisible();
-    await expect(preview.getByRole('heading', { name: 'Configure the pivot' })).toBeVisible();
+    await expect(preview.locator('#configure-the-pivot')).toBeVisible();
     await expect(preview.getByRole('heading', { name: 'Sorting' })).toBeVisible();
     await expect(
       preview.getByText('@lynellf/tablekit-pivot', { exact: true }).first(),
@@ -143,5 +160,24 @@ test.describe('Tablekit Storybook', () => {
     await expect(preview.getByText('Average of Margin', { exact: true })).toBeVisible();
     await expect(preview.getByText('Region = North', { exact: true })).toBeVisible();
     await expect(pageErrors).toEqual([]);
+  });
+
+  test('reconfigures a pivot from the built-in field builder', async ({ page }) => {
+    await page.goto('/iframe.html?id=components-pivotgrid--built-in-configurator&viewMode=story');
+
+    const controls = page.getByRole('complementary', { name: 'Pivot controls' });
+    const grid = page.getByRole('treegrid', { name: 'Configurable revenue pivot grid' });
+    await expect(controls).toBeVisible();
+    await expect(grid).toBeVisible();
+
+    await controls
+      .getByRole('combobox', { name: 'Aggregation for revenue_sum' })
+      .selectOption('avg');
+    await controls.getByRole('combobox', { name: 'Filter field' }).selectOption('region');
+    await controls.getByRole('textbox', { name: 'Filter value' }).fill('North');
+    await controls.getByRole('button', { name: 'Add filter' }).click();
+
+    await expect(grid.getByRole('button', { name: 'Expand North' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'Expand South' })).toHaveCount(0);
   });
 });

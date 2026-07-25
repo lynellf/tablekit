@@ -1,7 +1,6 @@
-<!-- Historical: true -->
 # Layout Recipe — Virtualization + Sticky Pinning
 
-> Recipe — Last verified against v2.0.0
+> Recipe — Last verified against v2.1.0
 
 ## Problem
 
@@ -180,6 +179,6 @@ Do not override z-index without understanding the scroll container hierarchy —
 
 ## Verified against
 
-- `@lynellf/tablekit-core@2.0.0`
-- `@lynellf/tablekit-react@2.0.0`
+- `@lynellf/tablekit-core@2.1.0`
+- `@lynellf/tablekit-react@2.1.0`
 - `docs/table-kit-functional-parity-spec.md`

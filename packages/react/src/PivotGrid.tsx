@@ -1,6 +1,12 @@
-import type { PivotColumnNode, PivotLeafColumn, PivotRowNode } from '@lynellf/tablekit-pivot';
+import type {
+  PivotColumnNode,
+  PivotConfig,
+  PivotLeafColumn,
+  PivotRowNode,
+} from '@lynellf/tablekit-pivot';
 import { type CSSProperties, type KeyboardEvent, type ReactNode, useEffect, useState } from 'react';
-import type { PivotGridProps, PivotGridValueContext } from './PivotGrid.types';
+import { PivotFieldBuilder } from './PivotFieldBuilder';
+import type { PivotGridControls, PivotGridProps, PivotGridValueContext } from './PivotGrid.types';
 import {
   type PivotPinnedSide,
   createPivotColumnRegions,
@@ -10,7 +16,12 @@ import { type UsePivotTableOptions, usePivotTable } from './usePivotTable';
 import { getVirtualWindow } from './virtualWindow';
 import './styles.css';
 
-export type { PivotGridProps, PivotGridValueContext } from './PivotGrid.types';
+export type {
+  PivotGridControlField,
+  PivotGridControls,
+  PivotGridProps,
+  PivotGridValueContext,
+} from './PivotGrid.types';
 
 const DEFAULT_HEIGHT = 480;
 const DEFAULT_WIDTH = 800;
@@ -70,6 +81,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     rowHeaderWidth = DEFAULT_ROW_HEADER_WIDTH,
     overscanRows = 4,
     overscanColumns = 2,
+    pivotControls: pivotControlsInput,
     className,
     'aria-label': ariaLabel = 'Pivot grid',
     loadingContent = 'Loading pivot…',
@@ -77,10 +89,20 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     errorContent = (error: Error) => `Unable to aggregate rows: ${error.message}`,
     renderValue,
   } = props;
+  const pivotControls: PivotGridControls | null =
+    pivotControlsInput === true
+      ? {}
+      : pivotControlsInput && typeof pivotControlsInput === 'object'
+        ? pivotControlsInput
+        : null;
+  const [builderPivot, setBuilderPivot] = useState<PivotConfig<TRow> | null>(null);
+  useEffect(() => {
+    setBuilderPivot(null);
+  }, [pivotConfig]);
 
   const options: UsePivotTableOptions<TRow> = {
     data,
-    pivot: pivotConfig,
+    pivot: builderPivot ?? pivotConfig,
     ...(engine ? { engine } : {}),
     ...(getRowId ? { getRowId } : {}),
     ...(dataVersion ? { dataVersion } : {}),
@@ -97,6 +119,15 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     ...(tabBehavior ? { tabBehavior } : {}),
   };
   const { pivot, state, Announcer, gridRef } = usePivotTable(options);
+  const updateBuilderPivot = (updater: (current: PivotConfig<TRow>) => PivotConfig<TRow>) => {
+    if (controlledState && 'pivot' in controlledState) {
+      onPivotChange?.(updater);
+      return;
+    }
+    const next = updater(state.pivot as PivotConfig<TRow>);
+    setBuilderPivot(next);
+    onPivotChange?.(next);
+  };
   const result = pivot.getResult();
   const rows = pivot.getVisibleRows();
   const leafColumns = pivot.getLeafColumns();
@@ -294,192 +325,211 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
   return (
     <div className={['tk-pivot-grid', className].filter(Boolean).join(' ')} style={rootStyle}>
       <Announcer />
-      <div
-        {...pivot.getGridProps()}
-        ref={gridRef}
-        className="tk-pivot-viewport"
-        aria-label={ariaLabel}
-        aria-busy={status === 'loading' ? true : undefined}
-        onKeyDown={onGridKeyDown}
-        onScroll={(event) => {
-          const element = event.currentTarget;
-          setViewport({
-            top: element.scrollTop,
-            left: element.scrollLeft,
-            height: element.clientHeight || height,
-            width: element.clientWidth || width,
-          });
-        }}
-      >
-        <div className="tk-pivot-header" style={{ width: contentWidth, height: headerHeight }}>
-          <div
-            role="columnheader"
-            className="tk-pivot-corner"
-            data-pinned="left"
-            style={{ left: viewport.left, width: rowHeaderWidth }}
-          >
-            Rows
-          </div>
-          {headerRows.map((headerRow, rowIndex) => (
-            <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: hierarchy depth is stable
-              key={rowIndex}
-              role="row"
-              className="tk-pivot-header-row"
-              style={{ top: rowIndex * HEADER_ROW_HEIGHT, height: HEADER_ROW_HEIGHT }}
-            >
-              {getRenderedHeaders(headerRow).map((renderedHeader) => {
-                const { node, pinned, size } = renderedHeader;
-                return (
-                  <div
-                    key={`${rowIndex}:${node.id}`}
-                    {...pivot.getHeaderProps(node)}
-                    className={['tk-pivot-column-header', pinned && `tk-pivot-pinned-${pinned}`]
-                      .filter(Boolean)
-                      .join(' ')}
-                    data-pinned={pinned || undefined}
-                    style={{ left: getRenderedLeft(renderedHeader), width: size }}
-                  >
-                    {renderSlot(labelOf(node), { node, pivot }, String(labelOf(node) ?? ''))}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
+      <div className="tk-pivot-layout">
+        {pivotControls && (pivotControls.position ?? 'right') === 'left' && (
+          <PivotFieldBuilder<TRow>
+            config={state.pivot as PivotConfig<TRow>}
+            controls={pivotControls}
+            data={data}
+            onChange={updateBuilderPivot}
+          />
+        )}
         <div
-          {...pivot.getBodyProps()}
-          className="tk-pivot-body"
-          style={{ height: bodyHeight, width: contentWidth }}
+          {...pivot.getGridProps()}
+          ref={gridRef}
+          className="tk-pivot-viewport"
+          aria-label={ariaLabel}
+          aria-busy={status === 'loading' ? true : undefined}
+          onKeyDown={onGridKeyDown}
+          onScroll={(event) => {
+            const element = event.currentTarget;
+            setViewport({
+              top: element.scrollTop,
+              left: element.scrollLeft,
+              height: element.clientHeight || height,
+              width: element.clientWidth || width,
+            });
+          }}
         >
-          {rowWindow.items.map(({ index, start }) => {
-            const row = rows[index];
-            if (!row) return null;
-            return (
+          <div className="tk-pivot-header" style={{ width: contentWidth, height: headerHeight }}>
+            <div
+              role="columnheader"
+              className="tk-pivot-corner"
+              data-pinned="left"
+              style={{ left: viewport.left, width: rowHeaderWidth }}
+            >
+              Rows
+            </div>
+            {headerRows.map((headerRow, rowIndex) => (
               <div
-                key={row.key}
-                {...pivot.getRowProps(row)}
-                className="tk-pivot-row"
-                style={{ top: start, height: rowHeight, width: contentWidth }}
+                // biome-ignore lint/suspicious/noArrayIndexKey: hierarchy depth is stable
+                key={rowIndex}
+                role="row"
+                className="tk-pivot-header-row"
+                style={{ top: rowIndex * HEADER_ROW_HEIGHT, height: HEADER_ROW_HEIGHT }}
               >
-                <div
-                  {...pivot.getRowHeaderProps(row)}
-                  className="tk-pivot-row-header"
-                  data-pinned="left"
-                  style={{
-                    left: viewport.left,
-                    width: rowHeaderWidth,
-                    paddingLeft: 8 + row.level * 16,
-                  }}
-                >
-                  {row.hasChildren && (
-                    <button type="button" {...pivot.getToggleExpandedProps(row)}>
-                      {state.expanded[row.key] ? '−' : '+'}
-                    </button>
-                  )}
-                  <span>{String(row.label ?? '')}</span>
-                  {row.childState === 'loading' && <span role="status">Loading…</span>}
-                  {row.childState === 'error' && row.error && (
-                    <span role="alert">
-                      {row.error.message}
-                      <button
-                        type="button"
-                        aria-label={`Retry ${String(row.label)}`}
-                        onClick={() => pivot.retryRow(row.path)}
-                      >
-                        Retry
-                      </button>
-                    </span>
-                  )}
-                </div>
-                {renderedLeaves.map((renderedLeaf) => {
-                  const { leaf, pinned, size } = renderedLeaf;
-                  const focused =
-                    state.focusedCell?.rowId === row.key && state.focusedCell.columnId === leaf.id;
+                {getRenderedHeaders(headerRow).map((renderedHeader) => {
+                  const { node, pinned, size } = renderedHeader;
                   return (
                     <div
-                      key={leaf.id}
-                      role="gridcell"
-                      className={['tk-pivot-cell', pinned && `tk-pivot-pinned-${pinned}`]
+                      key={`${rowIndex}:${node.id}`}
+                      {...pivot.getHeaderProps(node)}
+                      className={['tk-pivot-column-header', pinned && `tk-pivot-pinned-${pinned}`]
                         .filter(Boolean)
                         .join(' ')}
-                      data-column-id={leaf.id}
                       data-pinned={pinned || undefined}
-                      data-pivot-cell-id={`${row.key}:${leaf.id}`}
-                      tabIndex={focused ? 0 : -1}
-                      style={{ left: getRenderedLeft(renderedLeaf), width: size }}
-                      onFocus={() => pivot.setFocusedCell({ rowId: row.key, columnId: leaf.id })}
-                      onClick={(event) => event.currentTarget.focus()}
-                      onKeyDown={() => {}}
+                      style={{ left: getRenderedLeft(renderedHeader), width: size }}
                     >
-                      {renderCellValue(row.values[leaf.id], row, leaf, false)}
+                      {renderSlot(labelOf(node), { node, pivot }, String(labelOf(node) ?? ''))}
                     </div>
                   );
                 })}
               </div>
-            );
-          })}
+            ))}
+          </div>
 
-          {showGrandTotal && (
-            <div
-              role="row"
-              className="tk-pivot-row tk-pivot-grand-total"
-              data-total="row"
-              style={{ top: rowWindow.totalSize, height: rowHeight, width: contentWidth }}
-            >
-              <div
-                role="rowheader"
-                className="tk-pivot-row-header"
-                data-pinned="left"
-                style={{ left: viewport.left, width: rowHeaderWidth }}
-              >
-                Grand total
-              </div>
-              {renderedLeaves.map((renderedLeaf) => (
+          <div
+            {...pivot.getBodyProps()}
+            className="tk-pivot-body"
+            style={{ height: bodyHeight, width: contentWidth }}
+          >
+            {rowWindow.items.map(({ index, start }) => {
+              const row = rows[index];
+              if (!row) return null;
+              return (
                 <div
-                  key={renderedLeaf.leaf.id}
-                  role="gridcell"
-                  className={[
-                    'tk-pivot-cell',
-                    renderedLeaf.pinned && `tk-pivot-pinned-${renderedLeaf.pinned}`,
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  data-column-id={renderedLeaf.leaf.id}
-                  data-pinned={renderedLeaf.pinned || undefined}
-                  style={{ left: getRenderedLeft(renderedLeaf), width: renderedLeaf.size }}
+                  key={row.key}
+                  {...pivot.getRowProps(row)}
+                  className="tk-pivot-row"
+                  style={{ top: start, height: rowHeight, width: contentWidth }}
                 >
-                  {renderCellValue(
-                    result.grandTotals[renderedLeaf.leaf.id],
-                    null,
-                    renderedLeaf.leaf,
-                    true,
-                  )}
+                  <div
+                    {...pivot.getRowHeaderProps(row)}
+                    className="tk-pivot-row-header"
+                    data-pinned="left"
+                    style={{
+                      left: viewport.left,
+                      width: rowHeaderWidth,
+                      paddingLeft: 8 + row.level * 16,
+                    }}
+                  >
+                    {row.hasChildren && (
+                      <button type="button" {...pivot.getToggleExpandedProps(row)}>
+                        {state.expanded[row.key] ? '−' : '+'}
+                      </button>
+                    )}
+                    <span>{String(row.label ?? '')}</span>
+                    {row.childState === 'loading' && <span role="status">Loading…</span>}
+                    {row.childState === 'error' && row.error && (
+                      <span role="alert">
+                        {row.error.message}
+                        <button
+                          type="button"
+                          aria-label={`Retry ${String(row.label)}`}
+                          onClick={() => pivot.retryRow(row.path)}
+                        >
+                          Retry
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                  {renderedLeaves.map((renderedLeaf) => {
+                    const { leaf, pinned, size } = renderedLeaf;
+                    const focused =
+                      state.focusedCell?.rowId === row.key &&
+                      state.focusedCell.columnId === leaf.id;
+                    return (
+                      <div
+                        key={leaf.id}
+                        role="gridcell"
+                        className={['tk-pivot-cell', pinned && `tk-pivot-pinned-${pinned}`]
+                          .filter(Boolean)
+                          .join(' ')}
+                        data-column-id={leaf.id}
+                        data-pinned={pinned || undefined}
+                        data-pivot-cell-id={`${row.key}:${leaf.id}`}
+                        tabIndex={focused ? 0 : -1}
+                        style={{ left: getRenderedLeft(renderedLeaf), width: size }}
+                        onFocus={() => pivot.setFocusedCell({ rowId: row.key, columnId: leaf.id })}
+                        onClick={(event) => event.currentTarget.focus()}
+                        onKeyDown={() => {}}
+                      >
+                        {renderCellValue(row.values[leaf.id], row, leaf, false)}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
 
-          {status === 'loading' && rows.length === 0 && (
-            <div role="status" className="tk-pivot-state">
-              {loadingContent}
-            </div>
-          )}
-          {status === 'success' && rows.length === 0 && (
-            <div role="status" className="tk-pivot-state">
-              {emptyContent}
-            </div>
-          )}
-          {status === 'error' && rows.length === 0 && rootError && (
-            <div role="alert" className="tk-pivot-state">
-              {errorContent(rootError)}
-              <button type="button" onClick={pivot.retry}>
-                Retry
-              </button>
-            </div>
-          )}
+            {showGrandTotal && (
+              <div
+                role="row"
+                className="tk-pivot-row tk-pivot-grand-total"
+                data-total="row"
+                style={{ top: rowWindow.totalSize, height: rowHeight, width: contentWidth }}
+              >
+                <div
+                  role="rowheader"
+                  className="tk-pivot-row-header"
+                  data-pinned="left"
+                  style={{ left: viewport.left, width: rowHeaderWidth }}
+                >
+                  Grand total
+                </div>
+                {renderedLeaves.map((renderedLeaf) => (
+                  <div
+                    key={renderedLeaf.leaf.id}
+                    role="gridcell"
+                    className={[
+                      'tk-pivot-cell',
+                      renderedLeaf.pinned && `tk-pivot-pinned-${renderedLeaf.pinned}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    data-column-id={renderedLeaf.leaf.id}
+                    data-pinned={renderedLeaf.pinned || undefined}
+                    style={{ left: getRenderedLeft(renderedLeaf), width: renderedLeaf.size }}
+                  >
+                    {renderCellValue(
+                      result.grandTotals[renderedLeaf.leaf.id],
+                      null,
+                      renderedLeaf.leaf,
+                      true,
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {status === 'loading' && rows.length === 0 && (
+              <div role="status" className="tk-pivot-state">
+                {loadingContent}
+              </div>
+            )}
+            {status === 'success' && rows.length === 0 && (
+              <div role="status" className="tk-pivot-state">
+                {emptyContent}
+              </div>
+            )}
+            {status === 'error' && rows.length === 0 && rootError && (
+              <div role="alert" className="tk-pivot-state">
+                {errorContent(rootError)}
+                <button type="button" onClick={pivot.retry}>
+                  Retry
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+        {pivotControls && (pivotControls.position ?? 'right') === 'right' && (
+          <PivotFieldBuilder<TRow>
+            config={state.pivot as PivotConfig<TRow>}
+            controls={pivotControls}
+            data={data}
+            onChange={updateBuilderPivot}
+          />
+        )}
       </div>
     </div>
   );

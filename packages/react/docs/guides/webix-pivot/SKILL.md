@@ -1,46 +1,31 @@
 ---
 name: webix-pivot
 description: >
-  Maps Webix Pivot features to table-kit's pivot hooks and engine surface. Use when
-  migrating from Webix Pivot, evaluating table-kit's pivot engine, or building a
-  Webix Pivot-style UI on top of table-kit-pivot.
+  Maps Webix Pivot features to tablekit's rendered PivotGrid, opt-in field
+  builder, and pivot engines. Use for migration analysis or a Webix-style UI.
 type: guide-companion
-verified_against: docs/m6-hardening/api-freeze.md v1.0.0
+verified_against: tablekit v2.1.0 source
 target: webix-pivot
 tablekit_packages:
   - @lynellf/tablekit-pivot
-  - @lynellf/tablekit-core
   - @lynellf/tablekit-react
+  - @lynellf/tablekit-worker
 companion_guide: ./guide.md
 ---
-<!-- Historical: true -->
 
-# Webix Pivot — table-kit concept map
+# Webix Pivot to tablekit
 
-This skill maps Webix Pivot's published feature set onto `@lynellf/tablekit-pivot` and `@lynellf/tablekit-core` (v1.0). It covers structure (rows/columns/measures/filters), aggregation, totals, expansion, and sort. Subtotals-per-level, lazy engine, and mergeable aggregators are where table-kit is richer.
+## Workflow
 
-## When to use this skill
-
-- You are migrating a Webix Pivot integration to table-kit.
-- You are evaluating table-kit's pivot engine against Webix Pivot.
-- You are building a Webix Pivot-style drag-and-configure UI on top of table-kit-pivot.
-
-## How to use it
-
-1. Read the companion guide at `./guide.md` for the full concept map.
-2. To build the integration, wire the v1.0 pivot surface per `docs/m6-hardening/api-freeze.md` §4 (pivot exports).
-3. Use `examples/m4-pivot-main-thread/src/App.tsx` as a reference for `PivotConfig` shape.
-4. For server-mode pivot, combine with `useDataSource` + `createWorkerEngine`.
-
-## Out of scope
-
-- Wiring code — this is a concept map, not an integration tutorial.
-- Pivot UI construction (field drag-and-drop, config dialog) — consumer builds the UI; table-kit handles the engine.
-- Live fetching of webix.com docs — claims cite by published feature name.
+1. Read `./guide.md`.
+2. Install the React and pivot packages.
+3. Translate Webix structure into `PivotConfig`.
+4. Use `pivotControls` for a rendered Rows/Columns/Values/Filters panel.
+5. Use declarative fields, filters, and aggregator names across worker/server boundaries.
+6. Document remaining Webix formatting, chart, and lifecycle gaps.
 
 ## See also
 
-- `./guide.md` (this skill's companion)
-- `docs/m6-hardening/api-freeze.md` (v1.0 contract, pivot exports)
-- `docs/initial-spec.md` §9 (PivotTable specifics)
-- `examples/m4-pivot-main-thread/src/App.tsx` (live `PivotConfig` usage reference)
+- `./guide.md`
+- `../webix-datagrid/guide.md`
+- `examples/showcase/src/PivotBuilderExample.tsx`

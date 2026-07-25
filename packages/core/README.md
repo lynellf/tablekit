@@ -20,7 +20,7 @@ const table = createDataTable({ data, columns });
 
 ## Status
 
-v1.0.0 — stable. The public API is frozen. See the [v1.0 API contract](https://github.com/lynellf/table-kit/tree/main/docs/m6-hardening/api-freeze.md).
+v2.1.0 — stable framework-agnostic state engine used by the rendered React grids.
 
 ## Packages
 
