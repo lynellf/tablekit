@@ -101,6 +101,23 @@ The deterministic browser host contains client and server scenarios for both
 components at [`examples/m4-pivot-main-thread/`](./examples/m4-pivot-main-thread/)
 using `?functional-parity`.
 
+### Storybook examples
+
+The repository includes a Storybook reference that pairs each working example
+with its exact TypeScript implementation. It exercises public package entry
+points rather than workspace source aliases, and covers client and server data
+grids, client and worker-backed pivot grids, and the server pivot engine.
+
+```bash
+pnpm examples:dev
+pnpm examples:build
+pnpm examples:test
+```
+
+Open a component's **Docs** page for the live canvas and copyable source, or use
+the **Controls** panel to vary supported inputs. The deployable Storybook lives
+at [`examples/showcase/`](./examples/showcase/).
+
 The rendered components intentionally do not promise Webix or AG Grid API,
 theme, or DOM compatibility. Variable-height rows, server-wide select-all,
 shift-range selection, per-level pivot subtotals, formulas, field-builder UI,

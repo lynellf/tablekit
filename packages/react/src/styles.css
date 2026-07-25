@@ -7,6 +7,7 @@
   --tk-selected-background: #e7f0ff;
   --tk-text-color: #172033;
   --tk-muted-color: #5f6b7a;
+  --tk-grid-header-height: 72px;
   color: var(--tk-text-color);
   font: 14px / 1.35 system-ui, sans-serif;
 }
@@ -26,9 +27,16 @@
   position: sticky;
   z-index: 4;
   top: 0;
-  height: 58px;
   background: var(--tk-header-background);
   border-bottom: 1px solid var(--tk-border-color);
+}
+
+.tk-grid-header {
+  height: var(--tk-grid-header-height);
+}
+
+.tk-pivot-header {
+  height: 58px;
 }
 
 .tk-pivot-header-row {
