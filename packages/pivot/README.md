@@ -2,7 +2,7 @@
 
 Framework-free PivotTable configuration, main-thread aggregation engine, and treegrid rendering primitives.
 
-**v1.0.0** — stable. The public API is frozen.
+**v2.1.0** — stable pivot engine used by `@lynellf/tablekit-react` and worker/server adapters.
 [API contract →](https://github.com/lynellf/table-kit/tree/main/docs/m6-hardening/api-freeze.md)
 
 ---

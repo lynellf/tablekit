@@ -22,6 +22,125 @@
   background: var(--tk-row-background);
 }
 
+.tk-pivot-layout {
+  display: flex;
+  align-items: flex-start;
+}
+
+.tk-pivot-controls {
+  box-sizing: border-box;
+  width: 300px;
+  max-height: var(--tk-grid-height);
+  flex: none;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--tk-border-color);
+  background: #fbfcfe;
+}
+
+.tk-pivot-controls[data-position="left"] {
+  border-right: 0;
+}
+
+.tk-pivot-controls[data-position="right"] {
+  border-left: 0;
+}
+
+.tk-pivot-controls h2,
+.tk-pivot-controls h3 {
+  margin: 0;
+}
+
+.tk-pivot-controls h2 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.tk-pivot-controls h3 {
+  color: var(--tk-muted-color);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tk-pivot-control-zone {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--tk-border-color);
+  border-radius: 6px;
+  background: var(--tk-row-background);
+}
+
+.tk-pivot-control-list,
+.tk-pivot-available-fields {
+  display: grid;
+  gap: 6px;
+}
+
+.tk-pivot-available-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tk-pivot-available-fields button {
+  overflow: hidden;
+  padding: 5px 7px;
+  border: 1px solid var(--tk-border-color);
+  border-radius: 4px;
+  background: var(--tk-header-background);
+  text-overflow: ellipsis;
+  cursor: grab;
+}
+
+.tk-pivot-control-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--tk-border-color);
+  border-radius: 4px;
+  background: var(--tk-header-background);
+}
+
+.tk-pivot-control-item-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-pivot-control-item button,
+.tk-pivot-drag-handle {
+  flex: none;
+}
+
+.tk-pivot-drag-handle {
+  cursor: grab;
+}
+
+.tk-pivot-control-item select {
+  min-width: 0;
+  max-width: 88px;
+}
+
+.tk-pivot-control-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px;
+}
+
+.tk-pivot-control-add select,
+.tk-pivot-control-add input {
+  min-width: 0;
+}
+
+.tk-pivot-filter-add {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .tk-grid-header,
 .tk-pivot-header {
   position: sticky;
@@ -100,16 +219,99 @@
 .tk-grid-header-label {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 4px;
   min-height: 22px;
   font-weight: 600;
+}
+
+.tk-grid-header-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tk-grid-sort-button {
   border: 0;
   background: transparent;
   cursor: pointer;
+}
+
+.tk-grid-column-header-controls {
+  overflow: visible;
+}
+
+.tk-grid-column-controls {
+  position: relative;
+}
+
+.tk-grid-column-menu-trigger,
+.tk-grid-reorder-handle {
+  flex: none;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tk-grid-column-menu-trigger:hover,
+.tk-grid-column-menu-trigger:focus-visible,
+.tk-grid-reorder-handle:hover,
+.tk-grid-reorder-handle:focus-visible,
+.tk-grid-reorder-handle[aria-pressed="true"] {
+  background: #e4e9f1;
+}
+
+.tk-grid-column-menu {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  width: 240px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--tk-border-color);
+  border-radius: 6px;
+  background: var(--tk-row-background);
+  box-shadow: 0 8px 24px rgb(23 32 51 / 18%);
+  color: var(--tk-text-color);
+  font-weight: 400;
+}
+
+.tk-grid-column-menu button {
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tk-grid-column-menu button:hover,
+.tk-grid-column-menu button:focus-visible {
+  background: var(--tk-row-hover-background);
+}
+
+.tk-grid-column-menu-section {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 5px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tk-border-color);
+}
+
+.tk-grid-column-menu-section label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.tk-grid-column-menu-section legend {
+  padding: 2px 8px;
+  color: var(--tk-muted-color);
+  font-size: 12px;
 }
 
 .tk-grid-filter {

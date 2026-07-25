@@ -328,4 +328,72 @@ describe('DataGrid', () => {
     expect(screen.queryByText('Person 11')).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('latest request failed');
   });
+
+  it('keeps column controls opt-in and manages sort, pinning, visibility, and reset', async () => {
+    const { unmount } = render(
+      <DataGrid rows={people} columns={columns} getRowId={(row) => row.id} />,
+    );
+    expect(screen.queryByRole('button', { name: 'Column controls for Name' })).toBeNull();
+    unmount();
+
+    render(<DataGrid rows={people} columns={columns} getRowId={(row) => row.id} columnControls />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Column controls for Name' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sort Name descending' }));
+    await waitFor(() =>
+      expect(screen.getByRole('columnheader', { name: /Name/ }).getAttribute('aria-sort')).toBe(
+        'descending',
+      ),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pin Name right' }));
+    expect(screen.getByRole('columnheader', { name: /Name/ }).dataset.pinned).toBe('right');
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show Age' }));
+    expect(screen.queryByRole('columnheader', { name: /Age/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset columns' }));
+    expect(screen.getByRole('columnheader', { name: /Age/ })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /Name/ }).dataset.pinned).toBeUndefined();
+  });
+
+  it('reorders columns with the keyboard grab pattern and pointer drop', () => {
+    render(
+      <DataGrid
+        rows={people}
+        columns={columns}
+        getRowId={(row) => row.id}
+        columnControls={{ reorder: true }}
+      />,
+    );
+
+    const nameHandle = screen.getByRole('button', { name: 'Reorder Name' });
+    fireEvent.keyDown(nameHandle, { key: ' ' });
+    fireEvent.keyDown(nameHandle, { key: 'ArrowRight' });
+    fireEvent.keyDown(nameHandle, { key: ' ' });
+
+    expect(
+      screen.getAllByRole('columnheader').map((header) => header.getAttribute('data-column-id')),
+    ).toEqual(['age', 'name']);
+
+    const transfer = {
+      effectAllowed: 'move',
+      dropEffect: 'move',
+      setData: vi.fn(),
+      getData: vi.fn(() => 'name'),
+    };
+    fireEvent.dragStart(screen.getByRole('button', { name: 'Reorder Name' }), {
+      dataTransfer: transfer,
+    });
+    fireEvent.dragOver(screen.getByRole('columnheader', { name: /Age/ }), {
+      dataTransfer: transfer,
+    });
+    fireEvent.drop(screen.getByRole('columnheader', { name: /Age/ }), {
+      dataTransfer: transfer,
+    });
+
+    expect(
+      screen.getAllByRole('columnheader').map((header) => header.getAttribute('data-column-id')),
+    ).toEqual(['name', 'age']);
+  });
 });

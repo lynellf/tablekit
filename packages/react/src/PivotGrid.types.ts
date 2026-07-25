@@ -25,6 +25,17 @@ export interface PivotGridValueContext<TRow> {
   isGrandTotal: boolean;
 }
 
+export interface PivotGridControlField {
+  field: string;
+  label?: string;
+}
+
+export interface PivotGridControls {
+  fields?: PivotGridControlField[];
+  position?: 'left' | 'right';
+  aggregators?: string[];
+}
+
 export interface PivotGridProps<TRow> {
   data: TRow[];
   pivot: PivotConfig<TRow> | ((options: { data: TRow[] }) => PivotConfig<TRow>);
@@ -48,6 +59,7 @@ export interface PivotGridProps<TRow> {
   rowHeaderWidth?: number;
   overscanRows?: number;
   overscanColumns?: number;
+  pivotControls?: boolean | PivotGridControls;
   className?: string;
   'aria-label'?: string;
   loadingContent?: ReactNode;

@@ -18,12 +18,9 @@ const REQUIRED_FRONTmatter_KEYS = [
 
 // Required section headers per guide.md
 const REQUIRED_GUIDE_SECTIONS = [
-  '## Mapping at a glance',
-  '## Concept → feature table',
-  '## Where the target has no v1.0 analog',
-  '## Where table-kit v1.0 is richer than the target',
-  '## See also',
-  '## Verified against',
+  '## Mapping',
+  '## Important differences',
+  '## Verification',
 ] as const;
 
 describe('guides — structural smoke test', () => {
@@ -59,10 +56,10 @@ describe('guides — structural smoke test', () => {
         }
       });
 
-      it('guide.md Verified against cites api-freeze.md', () => {
+      it('guide.md states the current verified version', () => {
         const guidePath = resolve(targetDir, 'guide.md');
         const content = readFileSync(guidePath, 'utf8');
-        expect(content).toContain('api-freeze.md');
+        expect(content).toContain('Last verified against the tablekit v2.1.0 source');
       });
     });
   }

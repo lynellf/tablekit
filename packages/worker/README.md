@@ -2,7 +2,7 @@
 
 Worker pivot engine + message protocol + tiny in-worker data store, plus a server engine reference factory.
 
-**v1.0.0** — stable. The public API is frozen.
+**v2.1.0** — stable worker protocol and pivot engine adapter.
 [API contract →](https://github.com/lynellf/table-kit/blob/main/docs/m6-hardening/api-freeze.md)
 
 ---

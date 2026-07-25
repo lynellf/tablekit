@@ -11,16 +11,19 @@ import {
 } from 'react';
 import type {
   DataGridCellEvent,
+  DataGridColumnControls,
   DataGridProps,
   DataGridRowEvent,
   RowSelectionState,
 } from './DataGrid.types';
+import { DataGridColumnMenu } from './DataGridColumnMenu';
 import { type UseDataTableOptions, useDataTable } from './useDataTable';
 import { getVirtualWindow } from './virtualWindow';
 import './styles.css';
 
 export type {
   DataGridCellEvent,
+  DataGridColumnControls,
   DataGridHandle,
   DataGridProps,
   DataGridRowEvent,
@@ -34,6 +37,40 @@ const DEFAULT_ROW_HEIGHT = 36;
 const SELECTION_COLUMN_WIDTH = 44;
 
 type GridCssProperties = CSSProperties & Record<`--tk-${string}`, string>;
+
+const NO_COLUMN_CONTROLS: Required<DataGridColumnControls> = {
+  menu: false,
+  reorder: false,
+  pinning: false,
+  visibility: false,
+};
+
+const ALL_COLUMN_CONTROLS: Required<DataGridColumnControls> = {
+  menu: true,
+  reorder: true,
+  pinning: true,
+  visibility: true,
+};
+
+const resolveColumnControls = (
+  controls: boolean | DataGridColumnControls | undefined,
+): Required<DataGridColumnControls> => {
+  if (controls === true) return ALL_COLUMN_CONTROLS;
+  if (!controls) return NO_COLUMN_CONTROLS;
+  return {
+    menu: controls.menu ?? false,
+    reorder: controls.reorder ?? false,
+    pinning: controls.pinning ?? false,
+    visibility: controls.visibility ?? false,
+  };
+};
+
+const getColumnLabel = <TRow,>(column: Column<TRow, unknown>): string => {
+  if (typeof column.def.header === 'string' || typeof column.def.header === 'number') {
+    return String(column.def.header);
+  }
+  return column.id;
+};
 
 interface RenderedGridColumn<TRow> {
   column: Column<TRow, unknown>;
@@ -88,12 +125,14 @@ export function DataGrid<TRow>(props: DataGridProps<TRow>) {
     overscanColumns = 2,
     pageSizeOptions = [10, 25, 50, 100],
     enableColumnResize = false,
+    columnControls: columnControlsInput,
     className,
     'aria-label': ariaLabel = 'Data grid',
     loadingContent = 'Loading rows…',
     emptyContent = 'No rows to display.',
     errorContent = (error: Error) => `Unable to load rows: ${error.message}`,
   } = props;
+  const columnControls = resolveColumnControls(columnControlsInput);
 
   const source = props.dataSource;
   if (
@@ -112,6 +151,11 @@ export function DataGrid<TRow>(props: DataGridProps<TRow>) {
   const [loadedServerCount, setLoadedServerCount] = useState<number | undefined>(undefined);
   const [internalSelection, setInternalSelection] =
     useState<RowSelectionState>(defaultRowSelection);
+  const [grabbedColumn, setGrabbedColumn] = useState<{
+    id: string;
+    targetIndex: number;
+  } | null>(null);
+  const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
   const selection = rowSelection ?? internalSelection;
   const data = source ? loadedServerRows : (props.rows ?? []);
 
@@ -400,6 +444,7 @@ export function DataGrid<TRow>(props: DataGridProps<TRow>) {
           )}
           {renderedColumns.map((renderedColumn) => {
             const { column, pinned, size } = renderedColumn;
+            const columnLabel = getColumnLabel(column);
             const sort = column.getIsSorted();
             const header = table
               .getHeaderGroups()[0]
@@ -409,15 +454,38 @@ export function DataGrid<TRow>(props: DataGridProps<TRow>) {
               <div
                 key={column.id}
                 role="columnheader"
-                className={['tk-grid-column-header', pinned && `tk-grid-pinned-${pinned}`]
+                className={[
+                  'tk-grid-column-header',
+                  (columnControls.menu || columnControls.pinning || columnControls.visibility) &&
+                    'tk-grid-column-header-controls',
+                  pinned && `tk-grid-pinned-${pinned}`,
+                ]
                   .filter(Boolean)
                   .join(' ')}
+                data-column-id={column.id}
                 data-pinned={pinned || undefined}
                 aria-sort={sort === false ? undefined : sort === 'asc' ? 'ascending' : 'descending'}
                 style={{ left: getRenderedColumnLeft(renderedColumn), width: size }}
+                onDragOver={(event) => {
+                  if (!columnControls.reorder) return;
+                  event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  if (!columnControls.reorder) return;
+                  event.preventDefault();
+                  const activeId =
+                    draggedColumnId || event.dataTransfer.getData('text/tablekit-column');
+                  const targetIndex = visibleColumns.findIndex((item) => item.id === column.id);
+                  if (activeId && targetIndex >= 0 && activeId !== column.id) {
+                    table.moveColumn(activeId, targetIndex);
+                  }
+                  setDraggedColumnId(null);
+                }}
               >
                 <div className="tk-grid-header-label">
-                  {renderSlot(column.def.header, { column, table }, column.id)}
+                  <span className="tk-grid-header-title">
+                    {renderSlot(column.def.header, { column, table }, column.id)}
+                  </span>
                   {column.getCanSort() && (
                     <button
                       type="button"
@@ -435,6 +503,69 @@ export function DataGrid<TRow>(props: DataGridProps<TRow>) {
                       {sort === 'asc' ? '↑' : sort === 'desc' ? '↓' : '↕'}
                     </button>
                   )}
+                  {columnControls.reorder && (
+                    <button
+                      type="button"
+                      className="tk-grid-reorder-handle"
+                      aria-label={`Reorder ${columnLabel}`}
+                      aria-pressed={grabbedColumn?.id === column.id}
+                      draggable
+                      onDragStart={(event) => {
+                        setDraggedColumnId(column.id);
+                        event.dataTransfer.setData('text/tablekit-column', column.id);
+                        event.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragEnd={() => setDraggedColumnId(null)}
+                      onKeyDown={(event) => {
+                        if (event.key === ' ' && grabbedColumn?.id !== column.id) {
+                          event.preventDefault();
+                          const targetIndex = visibleColumns.findIndex(
+                            (item) => item.id === column.id,
+                          );
+                          setGrabbedColumn({ id: column.id, targetIndex });
+                          table.announce(
+                            `Grabbed ${columnLabel}. Use left and right arrow keys to choose a position.`,
+                          );
+                          return;
+                        }
+                        if (grabbedColumn?.id !== column.id) return;
+                        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                          event.preventDefault();
+                          const delta = event.key === 'ArrowLeft' ? -1 : 1;
+                          const targetIndex = Math.max(
+                            0,
+                            Math.min(visibleColumns.length - 1, grabbedColumn.targetIndex + delta),
+                          );
+                          setGrabbedColumn({ ...grabbedColumn, targetIndex });
+                          table.announce(`Move ${columnLabel} to position ${targetIndex + 1}.`);
+                          return;
+                        }
+                        if (event.key === ' ' || event.key === 'Enter') {
+                          event.preventDefault();
+                          table.moveColumn(column.id, grabbedColumn.targetIndex);
+                          setGrabbedColumn(null);
+                          table.announce(
+                            `Moved ${columnLabel} to position ${grabbedColumn.targetIndex + 1}.`,
+                          );
+                          return;
+                        }
+                        if (event.key === 'Escape') {
+                          event.preventDefault();
+                          setGrabbedColumn(null);
+                          table.announce(`Cancelled moving ${columnLabel}.`);
+                        }
+                      }}
+                    >
+                      ⋮⋮
+                    </button>
+                  )}
+                  <DataGridColumnMenu
+                    columnId={column.id}
+                    columnLabel={columnLabel}
+                    columns={columns}
+                    controls={columnControls}
+                    table={table}
+                  />
                 </div>
                 {column.getCanFilter() && (
                   <input

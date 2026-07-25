@@ -13,6 +13,7 @@ export type { ReactElement } from 'react';
 export { DataGrid } from './DataGrid';
 export type {
   DataGridCellEvent,
+  DataGridColumnControls,
   DataGridHandle,
   DataGridProps,
   DataGridRowEvent,
@@ -21,7 +22,12 @@ export type {
 } from './DataGrid';
 
 export { PivotGrid } from './PivotGrid';
-export type { PivotGridProps, PivotGridValueContext } from './PivotGrid';
+export type {
+  PivotGridControlField,
+  PivotGridControls,
+  PivotGridProps,
+  PivotGridValueContext,
+} from './PivotGrid';
 
 // ─── Virtualization hooks (M2 Phase 4) ─────────────────────────────────────
 export { useScrollAdapter } from './useScrollAdapter';
@@ -39,7 +45,7 @@ export { useKeyboardNav } from './useKeyboardNav';
 // ─── Tab behavior (M6 Phase 2) ─────────────────────────────────────────────
 export { useTabBehavior } from './useTabBehavior';
 
-export const VERSION = '2.0.0' as const;
+export const VERSION = '2.1.0' as const;
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
 export { useDataTable } from './useDataTable';

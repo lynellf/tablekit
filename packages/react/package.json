@@ -1,8 +1,8 @@
 {
   "name": "@lynellf/tablekit-react",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": false,
-  "description": "React adapter for @lynellf/tablekit-core — hooks, prop getters, announcer, and a11y validator.",
+  "description": "Accessible React DataGrid and PivotGrid components, hooks, virtualization, and announcers.",
   "type": "module",
   "main": "./dist/tablekit-react.es.js",
   "module": "./dist/tablekit-react.es.js",
@@ -41,8 +41,8 @@
     "typecheck": "tsc -b"
   },
   "peerDependencies": {
-    "@lynellf/tablekit-core": "^2.0.0",
-    "@lynellf/tablekit-pivot": "^2.0.0",
+    "@lynellf/tablekit-core": "^2.1.0",
+    "@lynellf/tablekit-pivot": "^2.1.0",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {

@@ -9,6 +9,8 @@ import {
   type RegionFilter,
 } from './ClientPivotGridExample';
 import clientPivotGridSource from './ClientPivotGridExample.tsx?raw';
+import { PivotBuilderExample } from './PivotBuilderExample';
+import pivotBuilderSource from './PivotBuilderExample.tsx?raw';
 
 interface PivotGridStoryArgs {
   height: number;
@@ -67,6 +69,8 @@ npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-rea
 - \`totals\` controls the grand-total row and generated grand-total columns.
 
 Use the controls below to change each part of that configuration and compare the live result with the source panel.
+
+\`pivotControls\` is the opt-in rendered field builder. Pass \`true\` to infer fields from the first source row, or provide \`{ fields, position, aggregators }\` for explicit labels, placement, and aggregation choices. The panel edits the same \`PivotConfig\` used by \`usePivotTable\`; no parallel configuration model or drag-and-drop dependency is introduced.
 
 ### Sorting
 
@@ -180,6 +184,40 @@ export const ClientData: Story = {
       },
       source: {
         code: clientPivotGridSource,
+        language: 'tsx',
+      },
+    },
+  },
+};
+
+export const BuiltInConfigurator: Story = {
+  args: {
+    height: 520,
+    rowHeaderWidth: 190,
+    primaryRowField: 'region',
+    secondaryRowField: 'product',
+    primaryColumnField: 'year',
+    secondaryColumnField: 'none',
+    regionFilter: 'all',
+    channelFilter: 'all',
+    measure: 'revenue',
+    aggregation: 'sum',
+  },
+  render: ({ height, rowHeaderWidth }) => (
+    <PivotBuilderExample height={height} rowHeaderWidth={rowHeaderWidth} />
+  ),
+  parameters: {
+    packagePaths: ['@lynellf/tablekit-pivot', '@lynellf/tablekit-react'],
+    controls: {
+      include: ['height', 'rowHeaderWidth'],
+    },
+    docs: {
+      description: {
+        story:
+          'The field builder is rendered by PivotGrid itself. It can reorder or move row and column hierarchy fields, change or add measures, select an aggregation, and create declarative filters while the visual result remains beside the controls.',
+      },
+      source: {
+        code: pivotBuilderSource,
         language: 'tsx',
       },
     },

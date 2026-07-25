@@ -5,6 +5,7 @@ import type {
   PivotRowNode,
 } from '@lynellf/tablekit-pivot';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PivotGrid } from './PivotGrid';
 
@@ -325,5 +326,132 @@ describe('PivotGrid', () => {
         />,
       ),
     ).toThrowError('PivotGrid column group [2024] cannot be pinned to both left and right.');
+  });
+
+  it('keeps the pivot builder opt-in and updates hierarchies, filters, and aggregation', async () => {
+    const { unmount } = render(
+      <PivotGrid data={sales} pivot={config} getRowId={(row) => row.id} />,
+    );
+    expect(screen.queryByRole('complementary', { name: 'Pivot controls' })).toBeNull();
+    unmount();
+
+    render(
+      <PivotGrid
+        data={sales}
+        pivot={config}
+        getRowId={(row) => row.id}
+        pivotControls={{
+          position: 'right',
+          fields: [
+            { field: 'region', label: 'Region' },
+            { field: 'quarter', label: 'Quarter' },
+            { field: 'year', label: 'Year' },
+            { field: 'sales', label: 'Sales' },
+          ],
+        }}
+      />,
+    );
+
+    const controls = screen.getByRole('complementary', { name: 'Pivot controls' });
+    expect(controls.getAttribute('data-position')).toBe('right');
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Aggregation for sales_sum' }), {
+      target: { value: 'max' },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('row', { name: /Grand total/ }).textContent).toContain('300'),
+    );
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Filter field' }), {
+      target: { value: 'region' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter value' }), {
+      target: { value: 'East' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add filter' }));
+    await waitFor(() => expect(screen.queryByRole('row', { name: /West/ })).toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Quarter from rows' }));
+    expect(screen.queryByText('Quarter', { selector: '.tk-pivot-control-item-label' })).toBeNull();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows field' }), {
+      target: { value: 'quarter' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add row field' }));
+    expect(screen.getByText('Quarter', { selector: '.tk-pivot-control-item-label' })).toBeTruthy();
+  });
+
+  it('moves pivot dimensions between hierarchy zones with native drag and drop', () => {
+    render(<PivotGrid data={sales} pivot={config} getRowId={(row) => row.id} pivotControls />);
+
+    const transfer = {
+      effectAllowed: 'move',
+      dropEffect: 'move',
+      setData: vi.fn(),
+      getData: vi.fn(() => JSON.stringify({ source: 'rows', field: 'quarter', index: 1 })),
+    };
+    fireEvent.dragStart(screen.getByRole('button', { name: 'Reorder Quarter in rows' }), {
+      dataTransfer: transfer,
+    });
+    fireEvent.dragOver(screen.getByRole('group', { name: 'Column hierarchy' }), {
+      dataTransfer: transfer,
+    });
+    fireEvent.drop(screen.getByRole('group', { name: 'Column hierarchy' }), {
+      dataTransfer: transfer,
+    });
+
+    expect(
+      within(screen.getByRole('group', { name: 'Column hierarchy' })).getByText('Quarter', {
+        selector: '.tk-pivot-control-item-label',
+      }),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByRole('group', { name: 'Row hierarchy' })).queryByText('Quarter', {
+        selector: '.tk-pivot-control-item-label',
+      }),
+    ).toBeNull();
+
+    const valueTransfer = {
+      ...transfer,
+      getData: vi.fn(() => JSON.stringify({ source: 'available', field: 'sales' })),
+    };
+    fireEvent.dragStart(screen.getByRole('button', { name: 'Sales' }), {
+      dataTransfer: valueTransfer,
+    });
+    fireEvent.drop(screen.getByRole('group', { name: 'Values' }), {
+      dataTransfer: valueTransfer,
+    });
+    expect(screen.getByRole('combobox', { name: 'Aggregation for sales_sum_2' })).toBeTruthy();
+  });
+
+  it('dispatches pivot builder changes through the controlled pivot slice', () => {
+    function ControlledPivot() {
+      const [pivot, setPivot] = useState(config);
+      return (
+        <PivotGrid
+          data={sales}
+          pivot={config}
+          state={{ pivot }}
+          onPivotChange={(updater) =>
+            setPivot((current) => (typeof updater === 'function' ? updater(current) : updater))
+          }
+          pivotControls={{
+            fields: [
+              { field: 'region', label: 'Region' },
+              { field: 'quarter', label: 'Quarter' },
+              { field: 'year', label: 'Year' },
+              { field: 'sales', label: 'Sales' },
+            ],
+          }}
+        />
+      );
+    }
+
+    render(<ControlledPivot />);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Quarter from rows' }));
+    expect(
+      within(screen.getByRole('group', { name: 'Row hierarchy' })).queryByText('Quarter', {
+        selector: '.tk-pivot-control-item-label',
+      }),
+    ).toBeNull();
   });
 });

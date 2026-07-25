@@ -2,8 +2,7 @@
 
 React hooks, announcer component, virtualization adapters, and accessibility primitives for `@lynellf/tablekit-core` and `@lynellf/tablekit-pivot`.
 
-**v1.0.0** — stable. The public API is frozen.
-[API contract →](https://github.com/lynellf/table-kit/tree/main/docs/m6-hardening/api-freeze.md)
+**v2.1.0** — rendered grids with opt-in enhanced controls plus the headless hooks.
 
 ---
 
@@ -11,11 +10,14 @@ React hooks, announcer component, virtualization adapters, and accessibility pri
 
 ```bash
 npm install @lynellf/tablekit-core @lynellf/tablekit-react
+
+# React pivot APIs also require the optional pivot peer
+npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-react
 ```
 
 Requires **React ≥ 18** and **Node ≥ 20**.
 
-> `@lynellf/tablekit-core` is a peer dependency. `@lynellf/tablekit-pivot` is a transitive peer; its types and hooks (`usePivotTable`, pivot announcers) are also re-exported from this package.
+> `@lynellf/tablekit-core` is a peer dependency. `@lynellf/tablekit-pivot` is an optional peer so DataGrid-only consumers do not need it, but it must be installed before using `PivotGrid` or `usePivotTable`.
 
 ---
 
@@ -49,11 +51,19 @@ import '@lynellf/tablekit-react/styles.css';
   rows={people}
   columns={columns}
   initialState={{ columnPinning: { left: ['name'], right: ['status'] } }}
+  columnControls
 />
 
 <PivotGrid
   data={sales}
   pivot={pivotConfig}
+  pivotControls={{
+    fields: [
+      { field: 'region', label: 'Region' },
+      { field: 'year', label: 'Year' },
+      { field: 'sales', label: 'Sales' },
+    ],
+  }}
   initialState={{ columnPinning: { left: ['[2024]::sales'], right: [] } }}
 />
 ```
@@ -62,6 +72,12 @@ Pinned columns stay mounted while the center region is virtualized. DataGrid's
 selection control and PivotGrid's row header stay fixed ahead of left-pinned
 columns. PivotGrid promotes a pinned generated leaf to its entire top-level
 column group and keeps the grand-total group right-pinned by default.
+
+`columnControls` is opt-in and accepts `true` or
+`{ menu, reorder, pinning, visibility }`. `pivotControls` is also opt-in and
+accepts `true` for field inference or `{ fields, position, aggregators }`.
+Both rendered control surfaces delegate to the existing state engines and use
+native drag events, so they add no runtime drag-and-drop dependency.
 
 ---
 
@@ -417,7 +433,7 @@ Consumer-facing integration patterns:
 | Recipe | Description |
 |---|---|
 | [`layout.md`](/docs/recipes/layout.md) | Virtualization + sticky pinning in one scroll container |
-| [`dnd-column-reorder.md`](/docs/recipes/dnd-column-reorder.md) | Pointer-based column reordering via dnd-kit |
+| [`dnd-column-reorder.md`](/docs/recipes/dnd-column-reorder.md) | Dependency-free pointer column reorder |
 | [`kbd-column-reorder.md`](/docs/recipes/kbd-column-reorder.md) | Keyboard "grab" pattern (Space → Arrows → Space) |
 | [`split-pane.md`](/docs/recipes/split-pane.md) | Three viewports with scroll sync (for transformed parent layouts) |
 

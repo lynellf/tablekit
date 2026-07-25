@@ -21,6 +21,13 @@ import type { MessagesMap } from './messages';
 export type RowSelectionState = CoreRowSelectionState;
 export type RowSelectionMode = 'none' | 'single' | 'multiple';
 
+export interface DataGridColumnControls {
+  menu?: boolean;
+  reorder?: boolean;
+  pinning?: boolean;
+  visibility?: boolean;
+}
+
 export interface DataGridHandle<TRow> {
   getSelectedRowIds(): string[];
   getSelectedRows(): TRow[];
@@ -73,6 +80,7 @@ interface DataGridCommonProps<TRow> {
   overscanColumns?: number;
   pageSizeOptions?: number[];
   enableColumnResize?: boolean;
+  columnControls?: boolean | DataGridColumnControls;
   className?: string;
   'aria-label'?: string;
   loadingContent?: ReactNode;

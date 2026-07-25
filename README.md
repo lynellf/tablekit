@@ -2,7 +2,7 @@
 
 Headless table primitives for the modern web — framework-free state engine, row pipeline, column model, PivotTable support, and first-class React adapters.
 
-**Status:** v2.0.0 — Foundation phase complete. See [`docs/migration-v1-to-v2.md`](./docs/migration-v1-to-v2.md) for migration from v1, and [`docs/table-kit-2.0-parity-plan/phase-1-foundation-remediation-round-4.md`](./docs/table-kit-2.0-parity-plan/phase-1-foundation-remediation-round-4.md) for the v2.0 contract status.
+**Status:** v2.1.0 — rendered React grids now include opt-in column controls and a pivot field builder. See [`docs/migration-v1-to-v2.md`](./docs/migration-v1-to-v2.md) for migration from v1.
 
 ## Packages
 
@@ -22,8 +22,13 @@ npm install @lynellf/tablekit-core
 # With React adapter
 npm install @lynellf/tablekit-core @lynellf/tablekit-react
 
-# With PivotTable support
+# Headless PivotTable support
 npm install @lynellf/tablekit-core @lynellf/tablekit-pivot
+
+# Rendered React PivotGrid support
+npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-react
+
+# Worker-backed pivot support
 npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-worker
 ```
 
@@ -39,7 +44,7 @@ table.getState();       // current state snapshot
 table.subscribe(() => { /* re-render */ });
 ```
 
-See the [v1.0 API contract](https://github.com/lynellf/table-kit/tree/main/docs/m6-hardening/api-freeze.md) for the full export surface.
+See the rendered examples in [`examples/showcase/`](./examples/showcase/) and the package READMEs for the current public surface.
 
 ## React DataGrid and PivotGrid
 
@@ -59,6 +64,7 @@ export function Tables() {
         columns={personColumns}
         getRowId={(row) => row.id}
         initialState={{ columnPinning: { left: ['name'], right: ['status'] } }}
+        columnControls
         rowSelectionMode="multiple"
         height={480}
       />
@@ -68,6 +74,15 @@ export function Tables() {
           rows: ['region', 'quarter'],
           columns: ['year'],
           measures: [{ id: 'sales', field: 'sales', aggregator: 'sum' }],
+        }}
+        pivotControls={{
+          position: 'right',
+          fields: [
+            { field: 'region', label: 'Region' },
+            { field: 'quarter', label: 'Quarter' },
+            { field: 'year', label: 'Year' },
+            { field: 'sales', label: 'Sales' },
+          ],
         }}
         getRowId={(row) => row.id}
         initialState={{ columnPinning: { left: ['[2024]::sales'], right: [] } }}
@@ -88,12 +103,20 @@ remain mounted while only center columns are virtualized. `PivotGrid` promotes
 any pinned generated leaf to its complete top-level column group so hierarchy
 headers remain contiguous; opposite sides within one group are rejected.
 
+The enhanced UI remains opt-in. `columnControls={true}` adds column menus,
+pinning, visibility, reset, and pointer/keyboard reorder. `pivotControls={true}`
+adds a Rows/Columns/Values/Filters panel and infers fields from the first object
+row; pass an object to provide explicit field labels, panel position, and
+aggregator choices. These controls mutate the existing table and pivot state
+slices and add no runtime drag-and-drop dependency.
+
 | Workflow | DataGrid | PivotGrid |
 | --- | --- | --- |
 | Client filter/sort/page | Supported | Pre-aggregation filters supported |
 | Server execution | Offset `DataSource` | Root and child `AggregationEngine` requests |
 | Virtualization | Fixed-height rows and columns | Fixed-height rows and columns |
-| Frozen columns | Programmatic left/right pinning; selection stays fixed-left | Atomic top-level generated groups; row headers stay fixed-left; grand totals default right |
+| Frozen columns | Programmatic or menu-driven left/right pinning; selection stays fixed-left | Atomic top-level generated groups; row headers stay fixed-left; grand totals default right |
+| Enhanced controls | Opt-in menus, visibility, reset, and column reorder | Opt-in field builder for hierarchies, values, aggregations, and filters |
 | Selection and events | Single/multiple rows; row/cell click and double-click | Expand/collapse row groups |
 | Status and accessibility | Loading/empty/error, keyboard focus, grid ARIA | Root/child status, retry, keyboard focus, treegrid ARIA |
 
@@ -106,7 +129,8 @@ using `?functional-parity`.
 The repository includes a Storybook reference that pairs each working example
 with its exact TypeScript implementation. It exercises public package entry
 points rather than workspace source aliases, and covers client and server data
-grids, client and worker-backed pivot grids, and the server pivot engine.
+grids, enhanced column controls, client and worker-backed pivot grids, the
+built-in pivot configurator, and the server pivot engine.
 
 ```bash
 pnpm examples:dev
@@ -120,8 +144,8 @@ at [`examples/showcase/`](./examples/showcase/).
 
 The rendered components intentionally do not promise Webix or AG Grid API,
 theme, or DOM compatibility. Variable-height rows, server-wide select-all,
-shift-range selection, per-level pivot subtotals, formulas, field-builder UI,
-editing, range selection, paste, charts, and frozen rows are outside the MVP.
+shift-range selection, per-level pivot subtotals, formulas, editing, range
+selection, paste, charts, and frozen rows remain outside the current surface.
 Cursor pagination remains a headless API and is not part of `DataGrid` server
 mode acceptance.
 
@@ -138,7 +162,7 @@ Consumer-facing integration patterns. Each recipe is a self-contained copy-paste
 | Recipe | What it solves |
 | --- | --- |
 | [`docs/recipes/layout.md`](./docs/recipes/layout.md) | Virtualization + sticky pinning in one scroll container |
-| [`docs/recipes/dnd-column-reorder.md`](./docs/recipes/dnd-column-reorder.md) | Pointer-based column reordering via dnd-kit |
+| [`docs/recipes/dnd-column-reorder.md`](./docs/recipes/dnd-column-reorder.md) | Dependency-free pointer column reorder |
 | [`docs/recipes/kbd-column-reorder.md`](./docs/recipes/kbd-column-reorder.md) | Keyboard "grab" pattern (Space → Arrows → Space) |
 | [`docs/recipes/split-pane.md`](./docs/recipes/split-pane.md) | Three viewports with scroll sync (for transformed parent layouts) |
 
@@ -146,7 +170,7 @@ See [`docs/recipes/README.md`](./docs/recipes/) for the full index.
 
 ## Guides & agent skills
 
-Concept maps aligning table-kit's v1.0 feature surface against four external grid/pivot libraries. Guides ship inside the `@lynellf/tablekit-react` npm package at `node_modules/@lynellf/tablekit-react/docs/guides/<target>/`:
+Concept maps aligning tablekit v2.1 against four external grid/pivot surfaces. Guides ship inside the `@lynellf/tablekit-react` npm package at `node_modules/@lynellf/tablekit-react/docs/guides/<target>/`:
 
 | Target | Description |
 | --- | --- |
