@@ -1,6 +1,6 @@
 # Split-pane custom-rendering recipe
 
-> Last verified against tablekit v2.1.0.
+> Last verified against tablekit v2.2.0.
 
 Use this only when a transformed ancestor makes sticky positioning impossible and the rendered `DataGrid` cannot be placed outside that transform.
 

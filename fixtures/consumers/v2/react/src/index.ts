@@ -6,7 +6,14 @@
  */
 
 import { DataGrid, PivotGrid, ReactAnnouncer } from '@lynellf/tablekit-react';
-import type { DataGridProps, PivotGridProps, UseDataTableOptions } from '@lynellf/tablekit-react';
+import type {
+  DataGridProps,
+  PivotGridCellEvent,
+  PivotGridHandle,
+  PivotGridProps,
+  PivotGridRowEvent,
+  UseDataTableOptions,
+} from '@lynellf/tablekit-react';
 import React from 'react';
 
 interface Row {
@@ -36,7 +43,9 @@ const _dataGridProps: DataGridProps<Row> = {
   getRowId: (row: Row) => row.id,
 };
 
+const _pivotGridRef = React.createRef<PivotGridHandle>();
 const _pivotGridProps: PivotGridProps<Row> = {
+  ref: _pivotGridRef,
   data: _options.data,
   pivot: {
     rows: ['name'],
@@ -44,6 +53,12 @@ const _pivotGridProps: PivotGridProps<Row> = {
     measures: [{ id: 'age_sum', field: 'age', aggregator: 'sum' }],
   },
   getRowId: (row: Row) => row.id,
+  onCellClick: (event: PivotGridCellEvent<Row>) => {
+    void event.columnId;
+  },
+  onRowDoubleClick: (event: PivotGridRowEvent<Row>) => {
+    void event.rowKey;
+  },
 };
 
 const _DataGrid = React.createElement(DataGrid<Row>, _dataGridProps);
@@ -52,6 +67,7 @@ const _PivotGrid = React.createElement(PivotGrid<Row>, _pivotGridProps);
 void _Announcer;
 void _DataGrid;
 void _PivotGrid;
+void _pivotGridRef;
 
 // Note: In a real React app, useDataTable would be called inside a component.
 // This fixture verifies the types resolve correctly.

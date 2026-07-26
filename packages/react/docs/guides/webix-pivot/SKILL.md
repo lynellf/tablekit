@@ -4,7 +4,7 @@ description: >
   Maps Webix Pivot features to tablekit's rendered PivotGrid, opt-in field
   builder, and pivot engines. Use for migration analysis or a Webix-style UI.
 type: guide-companion
-verified_against: tablekit v2.1.0 source
+verified_against: tablekit v2.2.0 source
 target: webix-pivot
 tablekit_packages:
   - @lynellf/tablekit-pivot

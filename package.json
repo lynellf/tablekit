@@ -1,6 +1,6 @@
 {
   "name": "tablekit",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "description": "Table state engines and accessible React grids for data and pivot workflows.",
   "license": "MIT",

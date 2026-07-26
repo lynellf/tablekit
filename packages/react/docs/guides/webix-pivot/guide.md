@@ -1,12 +1,12 @@
 # Webix Pivot to tablekit concept map
 
-> Last verified against the tablekit v2.1.0 source and rendered Storybook examples.
+> Last verified against the tablekit v2.2.0 source and rendered Storybook examples.
 
-The v2.1 React surface includes the field builder that older tablekit guides described as entirely consumer-built.
+The v2.2 React surface includes the field builder that older tablekit guides described as entirely consumer-built.
 
 ## Mapping
 
-| Webix Pivot concept | tablekit v2.1 analog | Coverage |
+| Webix Pivot concept | tablekit v2.2 analog | Coverage |
 | --- | --- | --- |
 | `structure.rows` | `PivotConfig.rows` | Ordered hierarchy |
 | `structure.columns` | `PivotConfig.columns` | Ordered hierarchy |

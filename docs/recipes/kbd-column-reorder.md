@@ -1,6 +1,6 @@
 # Keyboard column reorder recipe
 
-> Last verified against tablekit v2.1.0.
+> Last verified against tablekit v2.2.0.
 
 ## Rendered DataGrid
 

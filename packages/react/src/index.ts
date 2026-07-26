@@ -23,9 +23,12 @@ export type {
 
 export { PivotGrid } from './PivotGrid';
 export type {
+  PivotGridCellEvent,
   PivotGridControlField,
   PivotGridControls,
+  PivotGridHandle,
   PivotGridProps,
+  PivotGridRowEvent,
   PivotGridValueContext,
 } from './PivotGrid';
 
@@ -45,7 +48,7 @@ export { useKeyboardNav } from './useKeyboardNav';
 // ─── Tab behavior (M6 Phase 2) ─────────────────────────────────────────────
 export { useTabBehavior } from './useTabBehavior';
 
-export const VERSION = '2.1.0' as const;
+export const VERSION = '2.2.0' as const;
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
 export { useDataTable } from './useDataTable';

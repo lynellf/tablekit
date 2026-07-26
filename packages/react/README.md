@@ -2,7 +2,7 @@
 
 React hooks, announcer component, virtualization adapters, and accessibility primitives for `@lynellf/tablekit-core` and `@lynellf/tablekit-pivot`.
 
-**v2.1.0** — rendered grids with opt-in enhanced controls plus the headless hooks.
+**v2.2.0** — rendered grids with adapter-ready PivotGrid events and imperative commands.
 
 ---
 
@@ -78,6 +78,44 @@ column group and keeps the grand-total group right-pinned by default.
 accepts `true` for field inference or `{ fields, position, aggregators }`.
 Both rendered control surfaces delegate to the existing state engines and use
 native drag events, so they add no runtime drag-and-drop dependency.
+
+#### PivotGrid adapter events and commands
+
+`PivotGrid` exposes the interaction and imperative seams needed by host-app
+adapters:
+
+```tsx
+import { createRef } from 'react';
+import type { PivotGridHandle } from '@lynellf/tablekit-react';
+
+const pivotRef = createRef<PivotGridHandle>();
+
+<PivotGrid
+  ref={pivotRef}
+  data={sales}
+  pivot={pivotConfig}
+  onCellDoubleClick={({ value, row, rowKey, leaf, columnId, isGrandTotal }) => {
+    openDrilldown({ value, row, rowKey, leaf, columnId, isGrandTotal });
+  }}
+  onRowDoubleClick={({ row, rowKey }) => openRow(rowKey, row)}
+/>
+
+pivotRef.current?.expandAll();
+pivotRef.current?.collapseAll();
+pivotRef.current?.sortFirstColumn();
+const rowPathKeys = pivotRef.current?.getAllRowPathKeys();
+```
+
+`onCellClick` and `onCellDoubleClick` receive `PivotGridCellEvent`, which adds
+stable `rowKey` and `columnId` coordinates to the `renderValue` context plus the
+React event. Grand-total cells report `row: null`, `rowKey: null`, and
+`isGrandTotal: true`. `onRowDoubleClick` receives `PivotGridRowEvent`.
+
+The handle routes expansion and level-0 label sorting through the existing
+controlled/uncontrolled state callbacks. `getAllRowPathKeys()` returns every
+unique row-path prefix derivable from the current `data` and configured row
+fields; `sortFirstColumn()` toggles that label sort between ascending and
+descending while preserving sort rules for other hierarchy levels.
 
 ---
 

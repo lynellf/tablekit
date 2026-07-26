@@ -1,15 +1,15 @@
 {
   "name": "@fixture/tablekit-react-consumer",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "//": "R6 fix: Use version placeholder instead of workspace:* for packed artifact verification",
   "dependencies": {
-    "@lynellf/tablekit-core": "2.1.0",
-    "@lynellf/tablekit-react": "2.1.0",
-    "@lynellf/tablekit-pivot": "2.1.0",
+    "@lynellf/tablekit-core": "2.2.0",
+    "@lynellf/tablekit-react": "2.2.0",
+    "@lynellf/tablekit-pivot": "2.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },

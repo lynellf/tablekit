@@ -5,7 +5,7 @@ description: >
   core. Use when migrating from AG Grid, evaluating parity, or designing an
   adapter with tablekit-react.
 type: guide-companion
-verified_against: tablekit v2.1.0 source
+verified_against: tablekit v2.2.0 source
 target: ag-grid-datagrid
 tablekit_packages:
   - @lynellf/tablekit-react
@@ -26,7 +26,7 @@ Use this skill for an evidence-based feature map, not for claims of drop-in comp
 5. Keep stable column IDs and drive controlled behavior through the existing state slices.
 6. Call out unsupported editing, export, clipboard, and global-search behavior explicitly.
 
-## Load-bearing v2.1 APIs
+## Load-bearing v2.2 APIs
 
 - `DataGrid`, `DataGridProps`, `DataGridColumnControls`
 - `columnControls={true | { menu, reorder, pinning, visibility }}`

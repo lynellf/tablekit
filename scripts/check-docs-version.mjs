@@ -12,7 +12,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
-const expectedVersion = '2.1.0';
+const expectedVersion = '2.2.0';
 
 // ─── Files that should be marked as historical/archived ───────────────────────
 

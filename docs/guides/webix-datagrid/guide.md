@@ -1,12 +1,12 @@
 # Webix DataTable to tablekit concept map
 
-> Last verified against the tablekit v2.1.0 source and rendered Storybook examples.
+> Last verified against the tablekit v2.2.0 source and rendered Storybook examples.
 
 Tablekit now renders a functional React grid, but it does not reproduce the Webix widget API.
 
 ## Mapping
 
-| Webix DataTable concept | tablekit v2.1 analog | Coverage |
+| Webix DataTable concept | tablekit v2.2 analog | Coverage |
 | --- | --- | --- |
 | `data` | `DataGrid.rows` | Full client path |
 | Remote loading | `DataGrid.dataSource` | Sort/filter/offset pagination |

@@ -2,7 +2,7 @@
 
 Headless table primitives for the modern web — framework-free state engine, row pipeline, column model, PivotTable support, and first-class React adapters.
 
-**Status:** v2.1.0 — rendered React grids now include opt-in column controls and a pivot field builder. See [`docs/migration-v1-to-v2.md`](./docs/migration-v1-to-v2.md) for migration from v1.
+**Status:** v2.2.0 — PivotGrid now exposes adapter-ready interaction events and imperative commands. See [`docs/migration-v1-to-v2.md`](./docs/migration-v1-to-v2.md) for migration from v1.
 
 ## Packages
 
@@ -117,7 +117,7 @@ slices and add no runtime drag-and-drop dependency.
 | Virtualization | Fixed-height rows and columns | Fixed-height rows and columns |
 | Frozen columns | Programmatic or menu-driven left/right pinning; selection stays fixed-left | Atomic top-level generated groups; row headers stay fixed-left; grand totals default right |
 | Enhanced controls | Opt-in menus, visibility, reset, and column reorder | Opt-in field builder for hierarchies, values, aggregations, and filters |
-| Selection and events | Single/multiple rows; row/cell click and double-click | Expand/collapse row groups |
+| Selection and events | Single/multiple rows; row/cell click and double-click | Cell click/double-click, row double-click, and adapter commands for expand/collapse/sort |
 | Status and accessibility | Loading/empty/error, keyboard focus, grid ARIA | Root/child status, retry, keyboard focus, treegrid ARIA |
 
 The deterministic browser host contains client and server scenarios for both
@@ -170,7 +170,7 @@ See [`docs/recipes/README.md`](./docs/recipes/) for the full index.
 
 ## Guides & agent skills
 
-Concept maps aligning tablekit v2.1 against four external grid/pivot surfaces. Guides ship inside the `@lynellf/tablekit-react` npm package at `node_modules/@lynellf/tablekit-react/docs/guides/<target>/`:
+Concept maps aligning tablekit v2.2 against four external grid/pivot surfaces. Guides ship inside the `@lynellf/tablekit-react` npm package at `node_modules/@lynellf/tablekit-react/docs/guides/<target>/`:
 
 | Target | Description |
 | --- | --- |

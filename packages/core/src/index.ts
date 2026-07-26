@@ -24,7 +24,7 @@
  *   - Full announcer polish + validator (M6)
  */
 
-export const VERSION = '2.1.0' as const;
+export const VERSION = '2.2.0' as const;
 
 // ─── Factory (M0) ──────────────────────────────────────────────────────────
 export { createDataTable, defaultGetRowId } from './createDataTable';

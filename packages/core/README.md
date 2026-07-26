@@ -20,7 +20,7 @@ const table = createDataTable({ data, columns });
 
 ## Status
 
-v2.1.0 — stable framework-agnostic state engine used by the rendered React grids.
+v2.2.0 — stable framework-agnostic state engine used by the rendered React grids.
 
 ## Packages
 

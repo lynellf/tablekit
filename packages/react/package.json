@@ -1,6 +1,6 @@
 {
   "name": "@lynellf/tablekit-react",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": false,
   "description": "Accessible React DataGrid and PivotGrid components, hooks, virtualization, and announcers.",
   "type": "module",
@@ -41,8 +41,8 @@
     "typecheck": "tsc -b"
   },
   "peerDependencies": {
-    "@lynellf/tablekit-core": "^2.1.0",
-    "@lynellf/tablekit-pivot": "^2.1.0",
+    "@lynellf/tablekit-core": "^2.2.0",
+    "@lynellf/tablekit-pivot": "^2.2.0",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {

@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] — 2026-07-25
+
+### Added
+
+- **PivotGrid interaction events** — Added `onCellClick`, `onCellDoubleClick`, and `onRowDoubleClick` with adapter-ready row, leaf, value, total-state, coordinate, and native-event payloads.
+- **PivotGrid imperative handle** — Added `PivotGridHandle` with `expandAll()`, `collapseAll()`, `sortFirstColumn()`, and `getAllRowPathKeys()` for toolbar and host-application integrations.
+
+### Changed
+
+- **PivotGrid keyboard activation** — Enter and Space now invoke the cell-click contract for keyboard-focused pivot cells.
+- **Adapter documentation and fixtures** — Documented the new PivotGrid surface and verified its exported types through the packed React consumer.
+- **Package versions** — Advanced the root workspace and all four published packages in lockstep to `2.2.0`.
+
 ## [2.1.0] — 2026-07-25
 
 ### Added

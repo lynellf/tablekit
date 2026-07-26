@@ -22,7 +22,7 @@ const root = resolve(new URL('..', import.meta.url).pathname);
 const packageNames = ['core', 'pivot', 'react', 'worker'];
 
 // ─── Public surface definition ────────────────────────────────────────────────
-// These are the documented v2.1.0 public exports per the spec.
+// These are the documented v2.2.0 public exports per the spec.
 // R6 fix: This is now actually used to verify imports, not just dead data.
 
 const publicSurfaces = {
@@ -70,7 +70,10 @@ const publicSurfaces = {
     'DataGrid',
     'PivotGrid',
     'type DataGridColumnControls',
+    'type PivotGridCellEvent',
     'type PivotGridControls',
+    'type PivotGridHandle',
+    'type PivotGridRowEvent',
   ],
   '@lynellf/tablekit-pivot': [
     'createPivotTable',

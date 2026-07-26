@@ -59,7 +59,7 @@ describe('guides — structural smoke test', () => {
       it('guide.md states the current verified version', () => {
         const guidePath = resolve(targetDir, 'guide.md');
         const content = readFileSync(guidePath, 'utf8');
-        expect(content).toContain('Last verified against the tablekit v2.1.0 source');
+        expect(content).toContain('Last verified against the tablekit v2.2.0 source');
       });
     });
   }

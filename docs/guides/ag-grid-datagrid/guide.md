@@ -1,12 +1,12 @@
 # AG Grid Data Grid to tablekit concept map
 
-> Last verified against the tablekit v2.1.0 source and rendered Storybook examples.
+> Last verified against the tablekit v2.2.0 source and rendered Storybook examples.
 
 Tablekit is not an AG Grid drop-in replacement. It now offers both a rendered React grid and a headless engine, but AG Grid still has a broader application suite and editing/export surface.
 
 ## Mapping
 
-| AG Grid concept | tablekit v2.1 analog | Coverage |
+| AG Grid concept | tablekit v2.2 analog | Coverage |
 | --- | --- | --- |
 | `rowData` | `<DataGrid rows={rows}>` | Full, client-side |
 | Server row model | `<DataGrid dataSource={source}>` | Sorting, filtering, offset pagination |

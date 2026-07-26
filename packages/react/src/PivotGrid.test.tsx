@@ -4,10 +4,11 @@ import type {
   PivotResult,
   PivotRowNode,
 } from '@lynellf/tablekit-pivot';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { useState } from 'react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { createRef, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PivotGrid } from './PivotGrid';
+import type { PivotGridHandle } from './PivotGrid';
 
 interface Sale {
   id: string;
@@ -99,6 +100,160 @@ const createServerResult = (): PivotResult<Sale> => ({
 });
 
 describe('PivotGrid', () => {
+  it('publishes cell and row interaction events with pivot coordinates and totals context', () => {
+    const onCellClick = vi.fn();
+    const onCellDoubleClick = vi.fn();
+    const onRowDoubleClick = vi.fn();
+
+    render(
+      <PivotGrid
+        data={sales}
+        pivot={config}
+        getRowId={(row) => row.id}
+        onCellClick={onCellClick}
+        onCellDoubleClick={onCellDoubleClick}
+        onRowDoubleClick={onRowDoubleClick}
+      />,
+    );
+
+    const westRow = screen.getByRole('row', { name: /West/ });
+    const westCell = within(westRow).getAllByRole('gridcell')[0]!;
+    fireEvent.click(westCell);
+    expect(onCellClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: 300,
+        row: expect.objectContaining({ key: '["West"]', path: ['West'] }),
+        rowKey: '["West"]',
+        leaf: expect.objectContaining({ id: '[2024]::sales_sum' }),
+        columnId: '[2024]::sales_sum',
+        isGrandTotal: false,
+        nativeEvent: expect.any(Object),
+      }),
+    );
+    fireEvent.keyDown(westCell, { key: 'Enter' });
+    expect(onCellClick).toHaveBeenCalledTimes(2);
+
+    fireEvent.doubleClick(westCell);
+    expect(onCellDoubleClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: 300,
+        rowKey: '["West"]',
+        columnId: '[2024]::sales_sum',
+        isGrandTotal: false,
+      }),
+    );
+    expect(onRowDoubleClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rowKey: '["West"]',
+        row: expect.objectContaining({ key: '["West"]' }),
+        nativeEvent: expect.any(Object),
+      }),
+    );
+
+    const grandTotalRow = screen.getByRole('row', { name: /Grand total/ });
+    const grandTotalCell = within(grandTotalRow).getAllByRole('gridcell')[0]!;
+    fireEvent.click(grandTotalCell);
+    expect(onCellClick).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        value: 600,
+        row: null,
+        rowKey: null,
+        columnId: '[2024]::sales_sum',
+        isGrandTotal: true,
+      }),
+    );
+    fireEvent.doubleClick(grandTotalCell);
+    expect(onCellDoubleClick).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        value: 600,
+        row: null,
+        rowKey: null,
+        columnId: '[2024]::sales_sum',
+        isGrandTotal: true,
+      }),
+    );
+  });
+
+  it('exposes adapter commands for row paths, expansion, collapse, and first-column sorting', async () => {
+    const ref = createRef<PivotGridHandle>();
+    const unfilteredConfig: PivotConfig<Sale> = { ...config, filters: [] };
+    render(
+      <PivotGrid ref={ref} data={sales} pivot={unfilteredConfig} getRowId={(row) => row.id} />,
+    );
+
+    expect(ref.current?.getAllRowPathKeys()).toEqual([
+      '["West"]',
+      '["West","Q1"]',
+      '["West","Q2"]',
+      '["East"]',
+      '["East","Q1"]',
+      '["East","Q2"]',
+    ]);
+
+    act(() => ref.current?.expandAll());
+    expect(await screen.findAllByRole('row', { name: /Q1/ })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Collapse West' })).toBeTruthy();
+
+    act(() => ref.current?.collapseAll());
+    await waitFor(() => expect(screen.queryByRole('row', { name: /Q1/ })).toBeNull());
+
+    act(() => ref.current?.sortFirstColumn());
+    await waitFor(() =>
+      expect(
+        Array.from(document.querySelectorAll('.tk-pivot-row-header > span')).map(
+          (node) => node.textContent,
+        ),
+      ).toEqual(['East', 'West']),
+    );
+
+    act(() => ref.current?.sortFirstColumn());
+    await waitFor(() =>
+      expect(
+        Array.from(document.querySelectorAll('.tk-pivot-row-header > span')).map(
+          (node) => node.textContent,
+        ),
+      ).toEqual(['West', 'East']),
+    );
+  });
+
+  it('routes imperative expansion and sorting through controlled callbacks', () => {
+    const ref = createRef<PivotGridHandle>();
+    const onExpandedChange = vi.fn();
+    const onPivotSortingChange = vi.fn();
+    render(
+      <PivotGrid
+        ref={ref}
+        data={sales}
+        pivot={{ ...config, filters: [] }}
+        state={{
+          expanded: {},
+          pivotSorting: [{ level: 1, by: 'label', desc: true }],
+        }}
+        onExpandedChange={onExpandedChange}
+        onPivotSortingChange={onPivotSortingChange}
+      />,
+    );
+
+    act(() => ref.current?.expandAll());
+    expect(onExpandedChange).toHaveBeenLastCalledWith({
+      '["West"]': true,
+      '["West","Q1"]': true,
+      '["West","Q2"]': true,
+      '["East"]': true,
+      '["East","Q1"]': true,
+      '["East","Q2"]': true,
+    });
+
+    act(() => ref.current?.collapseAll());
+    expect(onExpandedChange).toHaveBeenLastCalledWith({});
+
+    act(() => ref.current?.sortFirstColumn());
+    expect(onPivotSortingChange).toHaveBeenLastCalledWith([
+      { level: 0, by: 'label', desc: false },
+      { level: 1, by: 'label', desc: true },
+    ]);
+  });
+
   it('renders filtered aggregation, generated headers, totals, and expansion ARIA', async () => {
     render(<PivotGrid data={sales} pivot={config} getRowId={(row) => row.id} height={260} />);
 

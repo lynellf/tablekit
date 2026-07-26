@@ -5,7 +5,7 @@ description: >
   and pivot engine. Use for migration analysis, parity evaluation, or an
   AG Grid-style React pivot implementation.
 type: guide-companion
-verified_against: tablekit v2.1.0 source
+verified_against: tablekit v2.2.0 source
 target: ag-grid-pivot
 tablekit_packages:
   - @lynellf/tablekit-pivot
@@ -25,7 +25,7 @@ companion_guide: ./guide.md
 5. Keep worker/server-safe configuration declarative.
 6. State clearly that generated header-click sorting and AG Grid's enterprise side bar are not drop-in compatible.
 
-## Load-bearing v2.1 APIs
+## Load-bearing v2.2 APIs
 
 - `PivotGrid` and `pivotControls`
 - `PivotConfig.rows`, `.columns`, `.measures`, `.filters`, `.totals`

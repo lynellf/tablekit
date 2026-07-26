@@ -1,6 +1,6 @@
 # Recipes
 
-Consumer-facing integration patterns verified against tablekit v2.1.0.
+Consumer-facing integration patterns verified against tablekit v2.2.0.
 
 | Recipe | Use it for | Preferred surface |
 | --- | --- | --- |

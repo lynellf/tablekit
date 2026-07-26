@@ -1,12 +1,12 @@
 # AG Grid Pivot to tablekit concept map
 
-> Last verified against the tablekit v2.1.0 source and rendered Storybook examples.
+> Last verified against the tablekit v2.2.0 source and rendered Storybook examples.
 
 Tablekit provides a pivot engine, rendered React treegrid, and an opt-in field builder. It is not an AG Grid Enterprise pivot-mode replacement.
 
 ## Mapping
 
-| AG Grid pivot concept | tablekit v2.1 analog | Coverage |
+| AG Grid pivot concept | tablekit v2.2 analog | Coverage |
 | --- | --- | --- |
 | Pivot mode | Render `PivotGrid` instead of `DataGrid` | Separate component |
 | Row fields | `PivotConfig.rows` | Ordered hierarchy |

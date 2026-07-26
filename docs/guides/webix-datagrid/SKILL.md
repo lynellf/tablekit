@@ -4,7 +4,7 @@ description: >
   Maps Webix DataTable features to tablekit's rendered DataGrid and headless
   core. Use for migration analysis, parity evaluation, or a compatibility layer.
 type: guide-companion
-verified_against: tablekit v2.1.0 source
+verified_against: tablekit v2.2.0 source
 target: webix-datagrid
 tablekit_packages:
   - @lynellf/tablekit-react

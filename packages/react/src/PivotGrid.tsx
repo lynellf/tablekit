@@ -1,12 +1,31 @@
 import type {
+  FieldRef,
+  FieldValue,
   PivotColumnNode,
   PivotConfig,
+  PivotExpansionState,
   PivotLeafColumn,
   PivotRowNode,
+  PivotSortingState,
+  RowPathKey,
 } from '@lynellf/tablekit-pivot';
-import { type CSSProperties, type KeyboardEvent, type ReactNode, useEffect, useState } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+  type SyntheticEvent,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import { PivotFieldBuilder } from './PivotFieldBuilder';
-import type { PivotGridControls, PivotGridProps, PivotGridValueContext } from './PivotGrid.types';
+import type {
+  PivotGridCellEvent,
+  PivotGridControls,
+  PivotGridProps,
+  PivotGridRowEvent,
+  PivotGridValueContext,
+} from './PivotGrid.types';
 import {
   type PivotPinnedSide,
   createPivotColumnRegions,
@@ -17,9 +36,12 @@ import { getVirtualWindow } from './virtualWindow';
 import './styles.css';
 
 export type {
+  PivotGridCellEvent,
   PivotGridControlField,
   PivotGridControls,
+  PivotGridHandle,
   PivotGridProps,
+  PivotGridRowEvent,
   PivotGridValueContext,
 } from './PivotGrid.types';
 
@@ -57,8 +79,31 @@ const renderSlot = (slot: unknown, context: unknown, fallback: ReactNode): React
 const labelOf = (node: PivotColumnNode | PivotLeafColumn): unknown =>
   'label' in node ? node.label : node.header;
 
+const getFieldValue = <TRow,>(row: TRow, fieldRef: FieldRef<TRow>): FieldValue => {
+  if (typeof fieldRef === 'string') {
+    return (row as Record<string, unknown>)[fieldRef] as FieldValue;
+  }
+  return fieldRef.accessor
+    ? fieldRef.accessor(row)
+    : ((row as Record<string, unknown>)[fieldRef.field] as FieldValue);
+};
+
+const collectAllRowPathKeys = <TRow,>(data: TRow[], config: PivotConfig<TRow>): RowPathKey[] => {
+  const keys = new Set<RowPathKey>();
+  for (const row of data) {
+    const path: FieldValue[] = [];
+    for (const fieldRef of config.rows) {
+      path.push(getFieldValue(row, fieldRef));
+      const key = JSON.stringify(path);
+      if (key !== undefined) keys.add(key);
+    }
+  }
+  return [...keys];
+};
+
 export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
   const {
+    ref,
     data,
     pivot: pivotConfig,
     engine,
@@ -72,6 +117,9 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     onColumnPinningChange,
     onFocusedCellChange,
     onStateChange,
+    onRowDoubleClick,
+    onCellClick,
+    onCellDoubleClick,
     announcer,
     messages,
     tabBehavior,
@@ -119,6 +167,30 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     ...(tabBehavior ? { tabBehavior } : {}),
   };
   const { pivot, state, Announcer, gridRef } = usePivotTable(options);
+  useImperativeHandle(
+    ref,
+    () => ({
+      getAllRowPathKeys: () => collectAllRowPathKeys(data, state.pivot as PivotConfig<TRow>),
+      expandAll: () => {
+        const expanded = Object.fromEntries(
+          collectAllRowPathKeys(data, state.pivot as PivotConfig<TRow>).map((key) => [key, true]),
+        ) as PivotExpansionState;
+        pivot.setExpanded(expanded);
+      },
+      collapseAll: () => pivot.setExpanded({}),
+      sortFirstColumn: () => {
+        const currentSort = state.pivotSorting.find(
+          (item) => item.level === 0 && item.by === 'label',
+        );
+        const nextSorting: PivotSortingState = [
+          { level: 0, by: 'label', desc: currentSort ? !currentSort.desc : false },
+          ...state.pivotSorting.filter((item) => item.level !== 0),
+        ];
+        pivot.setPivotSorting(nextSorting);
+      },
+    }),
+    [data, pivot, state.pivot, state.pivotSorting],
+  );
   const updateBuilderPivot = (updater: (current: PivotConfig<TRow>) => PivotConfig<TRow>) => {
     if (controlledState && 'pivot' in controlledState) {
       onPivotChange?.(updater);
@@ -278,6 +350,30 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     return renderValue ? renderValue(context) : String(value ?? '');
   };
 
+  const publishRowEvent = (
+    callback: ((event: PivotGridRowEvent<TRow>) => void) | undefined,
+    row: PivotRowNode<TRow>,
+    nativeEvent: SyntheticEvent<HTMLDivElement>,
+  ) => callback?.({ rowKey: row.key, row, nativeEvent });
+
+  const publishCellEvent = (
+    callback: ((event: PivotGridCellEvent<TRow>) => void) | undefined,
+    value: unknown,
+    row: PivotRowNode<TRow> | null,
+    leaf: PivotLeafColumn<TRow>,
+    isGrandTotal: boolean,
+    nativeEvent: SyntheticEvent<HTMLDivElement>,
+  ) =>
+    callback?.({
+      value,
+      row,
+      leaf,
+      isGrandTotal,
+      rowKey: row?.key ?? null,
+      columnId: leaf.id,
+      nativeEvent,
+    });
+
   const onGridKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const focused = pivot.getState().focusedCell;
     if (!focused || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key))
@@ -402,6 +498,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                   {...pivot.getRowProps(row)}
                   className="tk-pivot-row"
                   style={{ top: start, height: rowHeight, width: contentWidth }}
+                  onDoubleClick={(event) => publishRowEvent(onRowDoubleClick, row, event)}
                 >
                   <div
                     {...pivot.getRowHeaderProps(row)}
@@ -451,8 +548,41 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                         tabIndex={focused ? 0 : -1}
                         style={{ left: getRenderedLeft(renderedLeaf), width: size }}
                         onFocus={() => pivot.setFocusedCell({ rowId: row.key, columnId: leaf.id })}
-                        onClick={(event) => event.currentTarget.focus()}
-                        onKeyDown={() => {}}
+                        onClick={(event) => {
+                          event.currentTarget.focus();
+                          publishCellEvent(
+                            onCellClick,
+                            row.values[leaf.id],
+                            row,
+                            leaf,
+                            false,
+                            event,
+                          );
+                        }}
+                        onDoubleClick={(event) =>
+                          publishCellEvent(
+                            onCellDoubleClick,
+                            row.values[leaf.id],
+                            row,
+                            leaf,
+                            false,
+                            event,
+                          )
+                        }
+                        onKeyDown={(event) => {
+                          if (!onCellClick || (event.key !== 'Enter' && event.key !== ' ')) {
+                            return;
+                          }
+                          event.preventDefault();
+                          publishCellEvent(
+                            onCellClick,
+                            row.values[leaf.id],
+                            row,
+                            leaf,
+                            false,
+                            event,
+                          );
+                        }}
                       >
                         {renderCellValue(row.values[leaf.id], row, leaf, false)}
                       </div>
@@ -489,7 +619,42 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                       .join(' ')}
                     data-column-id={renderedLeaf.leaf.id}
                     data-pinned={renderedLeaf.pinned || undefined}
+                    tabIndex={-1}
                     style={{ left: getRenderedLeft(renderedLeaf), width: renderedLeaf.size }}
+                    onFocus={() => pivot.setFocusedCell(null)}
+                    onClick={(event) => {
+                      event.currentTarget.focus();
+                      publishCellEvent(
+                        onCellClick,
+                        result.grandTotals[renderedLeaf.leaf.id],
+                        null,
+                        renderedLeaf.leaf,
+                        true,
+                        event,
+                      );
+                    }}
+                    onDoubleClick={(event) =>
+                      publishCellEvent(
+                        onCellDoubleClick,
+                        result.grandTotals[renderedLeaf.leaf.id],
+                        null,
+                        renderedLeaf.leaf,
+                        true,
+                        event,
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (!onCellClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+                      event.preventDefault();
+                      publishCellEvent(
+                        onCellClick,
+                        result.grandTotals[renderedLeaf.leaf.id],
+                        null,
+                        renderedLeaf.leaf,
+                        true,
+                        event,
+                      );
+                    }}
                   >
                     {renderCellValue(
                       result.grandTotals[renderedLeaf.leaf.id],
