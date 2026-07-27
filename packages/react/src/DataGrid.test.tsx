@@ -155,6 +155,121 @@ describe('DataGrid', () => {
     expect(screen.getAllByRole('columnheader').length).toBeLessThanOrEqual(7);
   });
 
+  it('fills a client viewport after its height increases without requiring a scroll event', async () => {
+    const { rerender } = render(
+      <DataGrid
+        rows={people}
+        columns={columns}
+        getRowId={(row) => row.id}
+        height={120}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    expect(document.querySelectorAll('.tk-grid-row')).toHaveLength(6);
+
+    rerender(
+      <DataGrid
+        rows={people}
+        columns={columns}
+        getRowId={(row) => row.id}
+        height={400}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    await waitFor(() => expect(document.querySelectorAll('.tk-grid-row')).toHaveLength(20));
+  });
+
+  it('replaces the client virtual row window after scrolling', async () => {
+    render(
+      <DataGrid
+        rows={people}
+        columns={columns}
+        getRowId={(row) => row.id}
+        height={120}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    expect(screen.getByText('Person 01')).toBeTruthy();
+    expect(screen.getByText('Person 06')).toBeTruthy();
+
+    const grid = screen.getByRole('grid');
+    Object.defineProperty(grid, 'scrollTop', { configurable: true, value: 200 });
+    fireEvent.scroll(grid);
+
+    await waitFor(() => expect(screen.getByText('Person 11')).toBeTruthy());
+    expect(screen.getByText('Person 16')).toBeTruthy();
+    expect(screen.queryByText('Person 01')).toBeNull();
+  });
+
+  it('fills a server viewport after its height increases without requiring a scroll event', async () => {
+    const source: DataSource<Person> = {
+      capabilities: {
+        sort: 'server',
+        filter: 'server',
+        paginate: 'server',
+        pagination: 'offset',
+      },
+      getRows: async () => ({ rows: people, totalRowCount: people.length }),
+    };
+    const renderGrid = (height: number) => (
+      <DataGrid
+        dataSource={source}
+        columns={columns}
+        getRowId={(row) => row.id}
+        initialState={{ pagination: { pageIndex: 0, pageSize: people.length } }}
+        height={height}
+        rowHeight={20}
+        overscanRows={0}
+      />
+    );
+    const { rerender } = render(renderGrid(120));
+
+    await waitFor(() => expect(document.querySelectorAll('.tk-grid-row')).toHaveLength(6));
+
+    rerender(renderGrid(400));
+
+    await waitFor(() => expect(document.querySelectorAll('.tk-grid-row')).toHaveLength(20));
+  });
+
+  it('replaces the server virtual row window after scrolling', async () => {
+    const source: DataSource<Person> = {
+      capabilities: {
+        sort: 'server',
+        filter: 'server',
+        paginate: 'server',
+        pagination: 'offset',
+      },
+      getRows: async () => ({ rows: people, totalRowCount: people.length }),
+    };
+    render(
+      <DataGrid
+        dataSource={source}
+        columns={columns}
+        getRowId={(row) => row.id}
+        initialState={{ pagination: { pageIndex: 0, pageSize: people.length } }}
+        height={120}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Person 06')).toBeTruthy());
+
+    const grid = screen.getByRole('grid');
+    Object.defineProperty(grid, 'scrollTop', { configurable: true, value: 200 });
+    fireEvent.scroll(grid);
+
+    await waitFor(() => expect(screen.getByText('Person 11')).toBeTruthy());
+    expect(screen.getByText('Person 16')).toBeTruthy();
+    expect(screen.queryByText('Person 01')).toBeNull();
+  });
+
   it('freezes pinned columns around a center-only virtual window without duplicate cells', async () => {
     const wideColumns = Array.from({ length: 30 }, (_, index) => ({
       id: `column-${index}`,
@@ -373,6 +488,20 @@ describe('DataGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset columns' }));
     expect(screen.getByRole('columnheader', { name: /Age/ })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: /Name/ }).dataset.pinned).toBeUndefined();
+  });
+
+  it('keeps one column menu open and dismisses it when focus leaves the menu', () => {
+    render(<DataGrid rows={people} columns={columns} getRowId={(row) => row.id} columnControls />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Column controls for Name' }));
+    expect(screen.getByRole('group', { name: 'Name column controls' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Column controls for Age' }));
+    expect(screen.queryByRole('group', { name: 'Name column controls' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Age column controls' })).toBeTruthy();
+
+    fireEvent.focusIn(screen.getByRole('grid'));
+    expect(screen.queryByRole('group', { name: 'Age column controls' })).toBeNull();
   });
 
   it('reorders columns with the keyboard grab pattern and pointer drop', () => {

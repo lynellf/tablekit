@@ -302,6 +302,67 @@ describe('PivotGrid', () => {
     ).toBe('false');
   });
 
+  it('keeps the header and grand-total footer outside the vertically scrolling body', () => {
+    render(<PivotGrid data={sales} pivot={config} height={220} />);
+
+    const treegrid = screen.getByRole('treegrid');
+    const bodyViewport = treegrid.querySelector('.tk-pivot-body-viewport');
+    const header = treegrid.querySelector('.tk-pivot-header');
+    const footer = treegrid.querySelector('.tk-pivot-footer');
+
+    expect(bodyViewport).toBeTruthy();
+    expect(header).toBeTruthy();
+    expect(footer).toBeTruthy();
+    expect(bodyViewport?.contains(header)).toBe(false);
+    expect(bodyViewport?.contains(footer)).toBe(false);
+    expect(footer?.getAttribute('data-total')).toBe('row');
+  });
+
+  it('spans a shallow total leaf through the remaining column-hierarchy header rows', () => {
+    render(
+      <PivotGrid
+        data={sales}
+        pivot={{
+          rows: ['region'],
+          columns: ['quarter', 'year'],
+          measures: [{ id: 'sales', field: 'sales', aggregator: 'sum', label: 'Revenue' }],
+          totals: { grandTotalColumn: true },
+        }}
+      />,
+    );
+
+    const totalMeasureHeader = Array.from(
+      document.querySelectorAll<HTMLElement>('.tk-pivot-column-header[data-pinned="right"]'),
+    ).find((header) => header.textContent === 'Revenue');
+
+    expect(totalMeasureHeader).toBeTruthy();
+    expect(totalMeasureHeader?.getAttribute('aria-rowspan')).toBe('2');
+    expect(totalMeasureHeader?.style.height).toBe('64px');
+  });
+
+  it('keeps a right total adjacent to the other columns when the pivot fits the viewport', () => {
+    render(
+      <PivotGrid
+        data={sales}
+        pivot={{
+          rows: ['region'],
+          columns: ['year'],
+          measures: [{ id: 'sales', field: 'sales', aggregator: 'sum', label: 'Revenue' }],
+          totals: { grandTotalColumn: true },
+        }}
+        width={800}
+        rowHeaderWidth={220}
+      />,
+    );
+
+    const totalMeasureHeader = Array.from(
+      document.querySelectorAll<HTMLElement>('.tk-pivot-column-header[data-pinned="right"]'),
+    ).find((header) => header.textContent === 'Revenue');
+
+    expect(totalMeasureHeader?.style.left).toBe('420px');
+    expect(totalMeasureHeader?.style.right).toBe('');
+  });
+
   it('isolates a server child error and retries only that path', async () => {
     let attempt = 0;
     const child: PivotRowNode<Sale> = {
@@ -395,13 +456,65 @@ describe('PivotGrid', () => {
 
     const treegrid = screen.getByRole('treegrid');
     Object.defineProperty(treegrid, 'scrollTop', { configurable: true, value: 500 });
-    Object.defineProperty(treegrid, 'scrollLeft', { configurable: true, value: 2_000 });
-    fireEvent.scroll(treegrid);
+    const bodyViewport =
+      treegrid.querySelector<HTMLElement>('.tk-pivot-body-viewport') ??
+      (() => {
+        throw new Error('Missing pivot body viewport');
+      })();
+    Object.defineProperty(bodyViewport, 'scrollLeft', { configurable: true, value: 2_000 });
+    fireEvent.scroll(bodyViewport);
     await waitFor(() =>
       expect(document.querySelectorAll('.tk-pivot-row').length).toBeLessThanOrEqual(12),
     );
     expect(firstCell?.isConnected).toBe(true);
     expect(screen.getAllByRole('columnheader').length).toBeLessThanOrEqual(9);
+  });
+
+  it('updates the virtual row window when expanded rows are scrolled', async () => {
+    const groupedSales = Array.from({ length: 4 }, (_, regionIndex) =>
+      Array.from({ length: 3 }, (_, quarterIndex) => ({
+        id: `${regionIndex}:${quarterIndex}`,
+        region: `Region ${regionIndex}`,
+        quarter: `Quarter ${quarterIndex}`,
+        year: 2024,
+        sales: regionIndex * 10 + quarterIndex,
+      })),
+    ).flat();
+
+    render(
+      <PivotGrid
+        data={groupedSales}
+        pivot={{
+          rows: ['region', 'quarter'],
+          columns: [],
+          measures: [{ id: 'sales', field: 'sales', aggregator: 'sum' }],
+          totals: { grandTotalRow: false },
+        }}
+        initialState={{
+          expanded: {
+            '["Region 0"]': true,
+            '["Region 1"]': true,
+            '["Region 2"]': true,
+          },
+        }}
+        height={120}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    expect(screen.queryByText('Region 3')).toBeNull();
+
+    const bodyViewport =
+      screen.getByRole('treegrid').querySelector<HTMLElement>('.tk-pivot-body-viewport') ??
+      (() => {
+        throw new Error('Missing pivot body viewport');
+      })();
+    Object.defineProperty(bodyViewport, 'scrollTop', { configurable: true, value: 220 });
+    fireEvent.scroll(bodyViewport);
+
+    await waitFor(() => expect(screen.getByText('Region 3')).toBeTruthy());
+    expect(screen.queryByText('Region 0')).toBeNull();
   });
 
   it('freezes generated column groups atomically around a center-only virtual window', async () => {
@@ -450,10 +563,12 @@ describe('PivotGrid', () => {
     );
 
     expect(rowHeader?.style.left).toBe('0px');
+    expect(rowHeader?.closest('.tk-pivot-row-pinned-layer')).toBeTruthy();
     expect(leftGroupHeader.dataset.pinned).toBe('left');
     expect(leftGroupHeader.style.left).toBe('120px');
+    expect(leftGroupHeader.closest('.tk-pivot-fixed-layer')).toBeTruthy();
     expect(rightGroupHeader.dataset.pinned).toBe('right');
-    expect(rightGroupHeader.style.left).toBe('500px');
+    expect(rightGroupHeader.style.right).toBe('200px');
     expect(promotedLeftCell?.dataset.pinned).toBe('left');
     expect(promotedRightCell?.dataset.pinned).toBe('right');
 
@@ -464,12 +579,17 @@ describe('PivotGrid', () => {
     fireEvent.keyDown(treegrid, { key: 'ArrowRight' });
     await waitFor(() => expect(document.activeElement?.dataset.columnId).toBe('[2005]::average'));
 
-    Object.defineProperty(treegrid, 'scrollLeft', { configurable: true, value: 1_500 });
-    fireEvent.scroll(treegrid);
+    const bodyViewport =
+      treegrid.querySelector<HTMLElement>('.tk-pivot-body-viewport') ??
+      (() => {
+        throw new Error('Missing pivot body viewport');
+      })();
+    Object.defineProperty(bodyViewport, 'scrollLeft', { configurable: true, value: 1_500 });
+    fireEvent.scroll(bodyViewport);
 
-    expect(rowHeader?.style.left).toBe('1500px');
-    expect(leftGroupHeader.style.left).toBe('1620px');
-    expect(rightGroupHeader.style.left).toBe('2000px');
+    expect(rowHeader?.style.left).toBe('0px');
+    expect(leftGroupHeader.style.left).toBe('120px');
+    expect(rightGroupHeader.style.right).toBe('200px');
     expect(screen.getAllByRole('columnheader', { name: '2005' })).toHaveLength(1);
     expect(screen.getAllByRole('columnheader', { name: '2001' })).toHaveLength(1);
     expect(

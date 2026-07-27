@@ -27,4 +27,29 @@ describe('React package architecture', () => {
     expect(source).toContain('@tanstack/react-table');
     expect(source).not.toContain('@lynellf/tablekit-core');
   });
+
+  it('clips fixed-height pivot column labels to one line', () => {
+    const styles = readSource('./styles.css');
+
+    expect(styles).toContain(`.tk-pivot-column-header {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}`);
+  });
+
+  it('keeps focused scrolling cells below pinned grid surfaces', () => {
+    const styles = readSource('./styles.css');
+
+    expect(styles).toContain(`.tk-grid-cell:focus,
+.tk-pivot-cell:focus {
+  z-index: 1;
+}`);
+    expect(styles).toContain(`.tk-grid-cell.tk-grid-pinned-left:focus,
+.tk-grid-cell.tk-grid-pinned-right:focus,
+.tk-pivot-cell.tk-pivot-pinned-left:focus,
+.tk-pivot-cell.tk-pivot-pinned-right:focus,
+.tk-pivot-row-header:focus {
+  z-index: 3;
+}`);
+  });
 });

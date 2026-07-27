@@ -270,6 +270,7 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
   const channelRef = useRef(createAnnouncerChannel(announcer ?? { announce: () => undefined }));
   const gridRef = useRef<HTMLDivElement>(null);
   const columnControls = resolveColumnControls(columnControlsInput);
+  const [openColumnMenuId, setOpenColumnMenuId] = useState<string | null>(null);
 
   const table = useReactTable({
     data,
@@ -355,6 +356,23 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
   );
 
   const [viewport, setViewport] = useState({ top: 0, left: 0, height, width });
+  useEffect(() => {
+    const element = gridRef.current;
+    const updateSize = () => {
+      const nextHeight = element?.clientHeight || height;
+      const nextWidth = element?.clientWidth || width;
+      setViewport((current) =>
+        current.height === nextHeight && current.width === nextWidth
+          ? current
+          : { ...current, height: nextHeight, width: nextWidth },
+      );
+    };
+    updateSize();
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [height, width]);
   const rows = table.getRowModel().rows;
   const selectionOffset = rowSelectionMode === 'none' ? 0 : SELECTION_COLUMN_WIDTH;
   const leftColumns = table.getLeftVisibleLeafColumns();
@@ -366,18 +384,30 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
   const focusedRowIndex = focusedCell
     ? rows.findIndex((row) => row.id === focusedCell.rowId)
     : undefined;
+  const rowRectCallbackRef = useRef<((rect: { width: number; height: number }) => void) | null>(
+    null,
+  );
+  const rowOffsetCallbackRef = useRef<((offset: number, isScrolling: boolean) => void) | null>(
+    null,
+  );
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => gridRef.current,
     estimateSize: () => rowHeight,
     overscan: overscanRows,
     observeElementRect: (_instance, callback) => {
+      rowRectCallbackRef.current = callback;
       callback({ width: viewport.width, height: viewport.height });
-      return () => undefined;
+      return () => {
+        rowRectCallbackRef.current = null;
+      };
     },
     observeElementOffset: (_instance, callback) => {
+      rowOffsetCallbackRef.current = callback;
       callback(viewport.top, false);
-      return () => undefined;
+      return () => {
+        rowOffsetCallbackRef.current = null;
+      };
     },
     rangeExtractor: (range) => {
       const indexes = defaultRangeExtractor(range);
@@ -386,9 +416,18 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
         : [...new Set([...indexes, focusedRowIndex])].sort((a, b) => a - b);
     },
   });
+  useEffect(() => {
+    rowRectCallbackRef.current?.({ width: viewport.width, height: viewport.height });
+  }, [viewport.height, viewport.width]);
+  useEffect(() => {
+    rowOffsetCallbackRef.current?.(viewport.top, false);
+  }, [viewport.top]);
   const focusedCenterColumnIndex = focusedCell
     ? centerColumns.findIndex((column) => column.id === focusedCell.columnId)
     : undefined;
+  const columnRectCallbackRef = useRef<((rect: { width: number; height: number }) => void) | null>(
+    null,
+  );
   const columnVirtualizer = useVirtualizer({
     horizontal: true,
     count: centerColumns.length,
@@ -396,11 +435,15 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
     estimateSize: (index) => centerColumns[index]?.getSize() ?? 0,
     overscan: overscanColumns,
     observeElementRect: (_instance, callback) => {
-      callback({
+      columnRectCallbackRef.current = callback;
+      const rect = {
         width: Math.max(0, viewport.width - selectionOffset - leftWidth - rightWidth),
         height: viewport.height,
-      });
-      return () => undefined;
+      };
+      callback(rect);
+      return () => {
+        columnRectCallbackRef.current = null;
+      };
     },
     observeElementOffset: (_instance, callback) => {
       callback(viewport.left, false);
@@ -413,6 +456,12 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
         : [...new Set([...indexes, focusedCenterColumnIndex])].sort((a, b) => a - b);
     },
   });
+  useEffect(() => {
+    columnRectCallbackRef.current?.({
+      width: Math.max(0, viewport.width - selectionOffset - leftWidth - rightWidth),
+      height: viewport.height,
+    });
+  }, [leftWidth, rightWidth, selectionOffset, viewport.height, viewport.width]);
   const rowItems = rowVirtualizer.getVirtualItems();
   const columnItems = columnVirtualizer.getVirtualItems();
   const centerStart = selectionOffset + leftWidth;
@@ -710,6 +759,8 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
                     columnLabel={columnLabel}
                     columns={columns}
                     controls={columnControls}
+                    open={openColumnMenuId === column.id}
+                    onOpenChange={(open) => setOpenColumnMenuId(open ? column.id : null)}
                     table={table}
                   />
                 </div>
