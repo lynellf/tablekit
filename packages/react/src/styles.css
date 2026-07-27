@@ -40,6 +40,123 @@
   align-items: flex-start;
 }
 
+.tk-pivot-controls-toolbar {
+  display: flex;
+  width: min(100%, var(--tk-grid-width));
+  margin-bottom: 8px;
+}
+
+.tk-pivot-controls-toolbar[data-position="left"] {
+  justify-content: flex-start;
+}
+
+.tk-pivot-controls-toolbar[data-position="right"] {
+  justify-content: flex-end;
+}
+
+.tk-pivot-controls-toolbar button,
+.tk-pivot-controls-close {
+  padding: 6px 10px;
+  border: 1px solid var(--tk-border-color);
+  border-radius: 4px;
+  background: var(--tk-row-background);
+  color: var(--tk-text-color);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tk-pivot-controls-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(var(--tk-grid-height), calc(100vh - 32px));
+  padding: 0;
+  border: 1px solid var(--tk-border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tk-text-color);
+  font: inherit;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgb(23 32 51 / 22%);
+}
+
+.tk-pivot-controls-dialog::backdrop {
+  background: rgb(23 32 51 / 35%);
+}
+
+.tk-pivot-controls-surface {
+  position: relative;
+  height: 100%;
+  background: #fbfcfe;
+}
+
+.tk-pivot-controls-close {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  min-width: 32px;
+  padding: 4px 8px;
+}
+
+.tk-pivot-controls-dialog .tk-pivot-controls {
+  width: 100%;
+  max-height: min(var(--tk-grid-height), calc(100vh - 32px));
+  border: 0;
+}
+
+.tk-pivot-controls-dialog .tk-pivot-controls h2 {
+  padding-right: 40px;
+}
+
+.tk-pivot-controls-dialog[data-presentation="drawer"] {
+  width: min(var(--tk-grid-width), calc(100vw - 32px));
+  height: min(var(--tk-grid-height), calc(100vh - 32px));
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tk-pivot-controls-dialog[data-presentation="drawer"] .tk-pivot-controls-surface {
+  width: min(360px, 100%);
+  margin-left: auto;
+  border: 1px solid var(--tk-border-color);
+  box-shadow: 0 12px 32px rgb(23 32 51 / 24%);
+  animation: tk-pivot-drawer-in-right 160ms ease-out;
+}
+
+.tk-pivot-controls-dialog[data-presentation="drawer"][data-position="left"]
+  .tk-pivot-controls-surface {
+  margin-right: auto;
+  margin-left: 0;
+  animation-name: tk-pivot-drawer-in-left;
+}
+
+.tk-pivot-controls-dialog[data-presentation="drawer"] .tk-pivot-controls {
+  max-height: 100%;
+}
+
+@keyframes tk-pivot-drawer-in-right {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+@keyframes tk-pivot-drawer-in-left {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-pivot-controls-dialog[data-presentation="drawer"] .tk-pivot-controls-surface {
+    animation: none;
+  }
+}
+
 .tk-pivot-controls {
   box-sizing: border-box;
   width: 300px;
@@ -306,6 +423,18 @@
   border: 0;
   background: transparent;
   cursor: pointer;
+}
+
+.tk-grid-sort-button[data-sort="none"]::before {
+  content: "↕";
+}
+
+.tk-grid-sort-button[data-sort="ascending"]::before {
+  content: "↑";
+}
+
+.tk-grid-sort-button[data-sort="descending"]::before {
+  content: "↓";
 }
 
 .tk-grid-column-header-controls {

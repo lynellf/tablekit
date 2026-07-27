@@ -1,4 +1,4 @@
-import { PivotGrid } from '@lynellf/tablekit-react';
+import { PivotGrid, type PivotGridControls } from '@lynellf/tablekit-react';
 import { salesRows } from './data';
 
 const fields = [
@@ -14,12 +14,20 @@ const fields = [
 ];
 
 export interface PivotBuilderExampleProps {
+  controlsOpen?: boolean;
+  controlsPosition?: NonNullable<PivotGridControls['position']>;
+  controlsPresentation?: NonNullable<PivotGridControls['presentation']>;
   height?: number;
+  onControlsOpenChange?: (open: boolean) => void;
   rowHeaderWidth?: number;
 }
 
 export function PivotBuilderExample({
+  controlsOpen,
+  controlsPosition = 'right',
+  controlsPresentation = 'inline',
   height = 520,
+  onControlsOpenChange,
   rowHeaderWidth = 190,
 }: PivotBuilderExampleProps) {
   return (
@@ -27,7 +35,7 @@ export function PivotBuilderExample({
       <div className="example-heading">
         <div>
           <p className="section-kicker">Opt-in field builder · main-thread aggregation</p>
-          <h2 id="pivot-builder-heading">Configure the pivot beside the result.</h2>
+          <h2 id="pivot-builder-heading">Configure the pivot in the layout that fits.</h2>
         </div>
         <div className="feature-list" aria-label="Active features">
           <span>Rows</span>
@@ -39,7 +47,8 @@ export function PivotBuilderExample({
 
       <p className="example-copy">
         Reorder or move hierarchy fields, change a value aggregation, and add pre-aggregation
-        filters. The rendered treegrid updates from the same public pivot state contract.
+        filters. Use the Storybook controls to place the builder inline, in a dialog, or in a drawer
+        over the treegrid.
       </p>
 
       <div className="demo-canvas">
@@ -62,7 +71,13 @@ export function PivotBuilderExample({
               grandTotalColumnPosition: 'end',
             },
           }}
-          pivotControls={{ fields, position: 'right' }}
+          pivotControls={{
+            fields,
+            position: controlsPosition,
+            presentation: controlsPresentation,
+            open: controlsOpen,
+            onOpenChange: onControlsOpenChange,
+          }}
           height={height}
           width={780}
           rowHeight={38}

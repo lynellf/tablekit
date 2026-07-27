@@ -587,6 +587,7 @@ the treegrid:
   data={sales}
   pivot={pivotConfig}
   pivotControls={{
+    presentation: 'drawer',
     position: 'right',
     fields: [
       { field: 'region', label: 'Region' },
@@ -602,6 +603,11 @@ the treegrid:
 Pass `pivotControls={true}` to infer fields from the first object row and expose
 all five built-in aggregators. The builder can reorder and move hierarchy
 fields, add or remove measures and filters, and change measure aggregations.
+
+`presentation` defaults to `inline`, preserving the panel beside the treegrid.
+Use `dialog` for a centered modal or `drawer` for a left- or right-anchored pane
+over the grid. Dialog and drawer visibility can be uncontrolled with
+`defaultOpen` or controlled with `open` and `onOpenChange`.
 
 See the complete
 [`PivotBuilderExample.tsx`](examples/showcase/src/PivotBuilderExample.tsx).
@@ -660,6 +666,11 @@ const sorting: PivotSortingState = [
   { level: 1, by: 'measure', measureId: 'revenue', desc: true },
 ];
 ```
+
+Generated value-column headers include sort buttons that order top-level row
+groups by that measure and column path. Each button cycles ascending,
+descending, then unsorted; the same interaction works with controlled
+`pivotSorting` state through `onPivotSortingChange`.
 
 Generated value column IDs use the form
 `<JSON column path>::<measure id>`, for example `[2025]::revenue`. Grand-total
