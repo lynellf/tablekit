@@ -23,7 +23,7 @@ const meta = {
 ### Install
 
 \`\`\`bash
-npm install @lynellf/tablekit-core @lynellf/tablekit-react
+npm install @lynellf/tablekit-react
 \`\`\`
 
 Import \`@lynellf/tablekit-react/styles.css\` once in the application that renders the grid.
@@ -94,7 +94,7 @@ export const ServerData: Story = {
   },
   render: ({ height }) => <ServerDataGridExample height={height} />,
   parameters: {
-    packagePaths: ['@lynellf/tablekit-core/dataSource', '@lynellf/tablekit-react'],
+    packagePaths: ['@lynellf/tablekit-react'],
     controls: {
       exclude: ['pageSize', 'rowSelectionMode'],
     },

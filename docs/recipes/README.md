@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Recipes
 
 Consumer-facing integration patterns verified against tablekit v2.2.0.

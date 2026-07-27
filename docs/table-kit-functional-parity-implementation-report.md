@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Table Kit MVP Functional Parity — Implementation Report
 
 ## Working tree

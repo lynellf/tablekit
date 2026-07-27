@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 5 — React Adapter Shell (`useDataTable`)
 
 **Goal:** Ship the M0 React adapter shell — a `useDataTable<TRow>(options)` hook that wraps `createDataTable`, calls `setOptions` on every render, subscribes via React 18’s `useSyncExternalStore`, and returns the current instance + state snapshot.

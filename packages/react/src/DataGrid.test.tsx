@@ -1,9 +1,9 @@
-import type { DataSource, RowsQuery, RowsResult } from '@lynellf/tablekit-core/dataSource';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DataGrid } from './DataGrid';
 import type { DataGridHandle } from './DataGrid';
+import type { DataSource, RowsQuery, RowsResult } from './dataSource';
 
 interface Person {
   id: string;
@@ -20,16 +20,16 @@ const people: Person[] = Array.from({ length: 40 }, (_, index) => ({
 const columns = [
   {
     id: 'name',
-    accessor: 'name' as const,
+    accessorKey: 'name' as const,
     header: 'Name',
     enableSorting: true,
-    enableFiltering: true,
+    enableColumnFilter: true,
     filterFn: 'includesString',
     size: 160,
   },
   {
     id: 'age',
-    accessor: 'age' as const,
+    accessorKey: 'age' as const,
     header: 'Age',
     enableSorting: true,
     sortingFn: 'basic',
@@ -121,7 +121,7 @@ describe('DataGrid', () => {
   it('bounds row and column DOM while retaining the logically focused cell', async () => {
     const wideColumns = Array.from({ length: 30 }, (_, index) => ({
       id: `column-${index}`,
-      accessor: (row: Person) => `${row.name}-${index}`,
+      accessorFn: (row: Person) => `${row.name}-${index}`,
       header: `Column ${index}`,
       size: 100,
     }));
@@ -158,7 +158,7 @@ describe('DataGrid', () => {
   it('freezes pinned columns around a center-only virtual window without duplicate cells', async () => {
     const wideColumns = Array.from({ length: 30 }, (_, index) => ({
       id: `column-${index}`,
-      accessor: (row: Person) => `${row.name}-${index}`,
+      accessorFn: (row: Person) => `${row.name}-${index}`,
       header: `Column ${index}`,
       size: 100,
     }));
@@ -327,6 +327,24 @@ describe('DataGrid', () => {
     expect(screen.getByText('Person 01')).toBeTruthy();
     expect(screen.queryByText('Person 11')).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('latest request failed');
+  });
+
+  it('renders a synchronous data source failure through the error state', async () => {
+    const source: DataSource<Person> = {
+      capabilities: {
+        sort: 'server',
+        filter: 'server',
+        paginate: 'server',
+        pagination: 'offset',
+      },
+      getRows: () => {
+        throw new Error('synchronous request failed');
+      },
+    };
+
+    render(<DataGrid dataSource={source} columns={columns} getRowId={(row) => row.id} />);
+
+    expect((await screen.findByRole('alert')).textContent).toContain('synchronous request failed');
   });
 
   it('keeps column controls opt-in and manages sort, pinning, visibility, and reset', async () => {

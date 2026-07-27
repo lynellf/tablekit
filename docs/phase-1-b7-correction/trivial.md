@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 1 B7 Correction — Implementation Summary
 
 **Status:** COMPLETE
@@ -77,4 +78,3 @@ M packages/react/src/useDataSource.ts
 2. **Strict Mode request ownership** - Each hook instance has its own in-flight entry. Strict Mode effect replay reattaches to the same entry rather than creating a duplicate request.
 
 3. **Refetch limitation** - The current `refetch()` implementation uses `setRefetchVersion` to trigger effect re-runs, but this doesn't properly notify the store, causing the refetch test to fail. This is a pre-existing issue.
-

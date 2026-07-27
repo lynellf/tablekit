@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 2 — Column hierarchy and deterministic sizing
 
 **Track:** D1  

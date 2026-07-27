@@ -1,8 +1,8 @@
 {
   "name": "@lynellf/tablekit-pivot",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "private": false,
-  "description": "Framework-free PivotTable config, main-thread aggregation engine, and treegrid rendering primitives.",
+  "description": "Framework-free pivot algorithms with main-thread, worker, and server execution.",
   "type": "module",
   "main": "./dist/tablekit-pivot.es.js",
   "module": "./dist/tablekit-pivot.es.js",
@@ -20,13 +20,25 @@
       "types": "./dist/engine/index.d.ts",
       "import": "./dist/engine/index.es.js"
     },
-    "./pivotTable": {
-      "types": "./dist/pivotTable/index.d.ts",
-      "import": "./dist/pivotTable/index.es.js"
-    },
     "./serialize": {
       "types": "./dist/serialize/index.d.ts",
       "import": "./dist/serialize/index.es.js"
+    },
+    "./worker": {
+      "types": "./dist/worker/index.d.ts",
+      "import": "./dist/worker/index.es.js"
+    },
+    "./worker/entry": {
+      "types": "./dist/worker/entry/index.d.ts",
+      "import": "./dist/worker/entry/index.es.js"
+    },
+    "./worker/protocol": {
+      "types": "./dist/worker/protocol/index.d.ts",
+      "import": "./dist/worker/protocol/index.es.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.es.js"
     }
   },
   "files": ["dist"],
@@ -40,7 +52,7 @@
     "url": "https://github.com/lynellf/table-kit/issues"
   },
   "homepage": "https://github.com/lynellf/table-kit",
-  "keywords": ["table", "headless", "pivot", "data-grid", "aggregation"],
+  "keywords": ["pivot", "aggregation", "worker", "server", "tree"],
   "engines": {
     "node": ">=20.0.0"
   },
@@ -50,8 +62,5 @@
     "build:subpaths": "node vite.subpaths.config.mjs",
     "typecheck": "tsc -b",
     "bench": "vitest bench --run bench/main-thread.bench.ts"
-  },
-  "peerDependencies": {
-    "@lynellf/tablekit-core": "^2.2.0"
   }
 }

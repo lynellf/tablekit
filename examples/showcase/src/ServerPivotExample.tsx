@@ -1,6 +1,6 @@
 import { createMainThreadEngine } from '@lynellf/tablekit-pivot/engine';
+import { createServerEngine } from '@lynellf/tablekit-pivot/server';
 import { PivotGrid } from '@lynellf/tablekit-react';
-import { createServerEngine } from '@lynellf/tablekit-worker/server';
 import { useEffect, useMemo } from 'react';
 import { type SalesRow, formatCurrency, salesRows } from './data';
 import { waitForDelay } from './serverData';
@@ -60,7 +60,6 @@ export function ServerPivotExample() {
             ],
             totals: { grandTotalRow: true, grandTotalColumn: true },
           }}
-          getRowId={(row) => row.id}
           height={320}
           width={760}
           rowHeight={38}

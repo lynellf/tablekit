@@ -1,25 +1,31 @@
 import type {
-  Announcer,
-  CellPosition,
   ColumnDef,
-  ColumnFilterItem,
-  ColumnPinningState,
-  ColumnResizeSession,
-  ColumnSizingState,
-  RowSelectionState as CoreRowSelectionState,
-  DataTableState,
-  PaginationState,
-  RowIdAccessor,
-  SliceChange,
-  SortItem,
-  TabBehavior,
-} from '@lynellf/tablekit-core';
-import type { DataSource, DataVersion } from '@lynellf/tablekit-core/dataSource';
+  InitialTableState,
+  OnChangeFn,
+  RowData,
+  RowSelectionState,
+  TableState,
+} from '@tanstack/react-table';
 import type { ReactNode, Ref, SyntheticEvent } from 'react';
+import type { DataSource } from './dataSource';
 import type { MessagesMap } from './messages';
 
-export type RowSelectionState = CoreRowSelectionState;
+export type { RowSelectionState };
 export type RowSelectionMode = 'none' | 'single' | 'multiple';
+export type TabBehavior = 'exit' | 'cells';
+
+export interface Announcer {
+  announce(message: string, politeness?: 'polite' | 'assertive'): void;
+}
+
+export interface DataGridCellPosition {
+  rowId: string;
+  columnId: string;
+}
+
+export interface DataGridState extends Partial<TableState> {
+  focusedCell?: DataGridCellPosition | null;
+}
 
 export interface DataGridColumnControls {
   menu?: boolean;
@@ -44,23 +50,22 @@ export interface DataGridCellEvent<TRow> extends DataGridRowEvent<TRow> {
   value: unknown;
 }
 
-interface DataGridCommonProps<TRow> {
+interface DataGridCommonProps<TRow extends RowData> {
   ref?: Ref<DataGridHandle<TRow>>;
   columns: Array<ColumnDef<TRow, unknown>>;
-  getRowId?: RowIdAccessor<TRow>;
-  initialState?: Partial<DataTableState>;
-  state?: Partial<DataTableState>;
-  onSortingChange?: SliceChange<SortItem[]>;
-  onColumnFiltersChange?: SliceChange<ColumnFilterItem[]>;
-  onPaginationChange?: SliceChange<PaginationState>;
-  onColumnOrderChange?: SliceChange<string[]>;
-  onColumnVisibilityChange?: SliceChange<Record<string, boolean>>;
-  onColumnPinningChange?: SliceChange<ColumnPinningState>;
-  onColumnSizingChange?: SliceChange<ColumnSizingState>;
-  onColumnSizingInfoChange?: SliceChange<ColumnResizeSession | null>;
-  onFocusedCellChange?: SliceChange<CellPosition | null>;
-  onStateChange?: SliceChange<DataTableState>;
-  dataVersion?: DataVersion<TRow>;
+  getRowId?: (originalRow: TRow, index: number, parent?: { id: string }) => string;
+  initialState?: InitialTableState & { focusedCell?: DataGridCellPosition | null };
+  state?: DataGridState;
+  onSortingChange?: OnChangeFn<TableState['sorting']>;
+  onColumnFiltersChange?: OnChangeFn<TableState['columnFilters']>;
+  onPaginationChange?: OnChangeFn<TableState['pagination']>;
+  onColumnOrderChange?: OnChangeFn<TableState['columnOrder']>;
+  onColumnVisibilityChange?: OnChangeFn<TableState['columnVisibility']>;
+  onColumnPinningChange?: OnChangeFn<TableState['columnPinning']>;
+  onColumnSizingChange?: OnChangeFn<TableState['columnSizing']>;
+  onColumnSizingInfoChange?: OnChangeFn<TableState['columnSizingInfo']>;
+  onFocusedCellChange?: OnChangeFn<DataGridCellPosition | null>;
+  onStateChange?: (state: DataGridState) => void;
   announcer?: Announcer;
   messages?: Partial<MessagesMap>;
   navigationMode?: 'cell' | 'row' | 'none';
@@ -88,14 +93,16 @@ interface DataGridCommonProps<TRow> {
   errorContent?: (error: Error) => ReactNode;
 }
 
-type ClientDataGridProps<TRow> = DataGridCommonProps<TRow> & {
+type ClientDataGridProps<TRow extends RowData> = DataGridCommonProps<TRow> & {
   rows: TRow[];
   dataSource?: never;
 };
 
-type ServerDataGridProps<TRow> = DataGridCommonProps<TRow> & {
+type ServerDataGridProps<TRow extends RowData> = DataGridCommonProps<TRow> & {
   rows?: never;
   dataSource: DataSource<TRow>;
 };
 
-export type DataGridProps<TRow> = ClientDataGridProps<TRow> | ServerDataGridProps<TRow>;
+export type DataGridProps<TRow extends RowData> =
+  | ClientDataGridProps<TRow>
+  | ServerDataGridProps<TRow>;

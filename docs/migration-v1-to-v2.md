@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Migration Guide: v1.x to v2.0.0
 
 This guide covers the breaking changes between `@lynellf/tablekit-core`, `@lynellf/tablekit-react`, `@lynellf/tablekit-pivot`, and `@lynellf/tablekit-worker` v1.x and v2.0.0.

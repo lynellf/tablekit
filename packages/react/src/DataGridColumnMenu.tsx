@@ -1,23 +1,29 @@
-import type { ColumnDef, DataTableInstance, SortItem } from '@lynellf/tablekit-core';
+import type { ColumnDef, RowData, Table } from '@tanstack/react-table';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import type { DataGridColumnControls } from './DataGrid.types';
 
-interface DataGridColumnMenuProps<TRow> {
+interface DataGridColumnMenuProps<TRow extends RowData> {
   columnId: string;
   columnLabel: string;
   columns: Array<ColumnDef<TRow, unknown>>;
   controls: Required<DataGridColumnControls>;
-  table: DataTableInstance<TRow>;
+  table: Table<TRow>;
 }
 
-const getColumnLabel = <TRow,>(column: ColumnDef<TRow, unknown>): string => {
+const getColumnId = <TRow extends RowData>(column: ColumnDef<TRow, unknown>): string => {
+  if (column.id) return column.id;
+  if ('accessorKey' in column && typeof column.accessorKey === 'string') return column.accessorKey;
+  throw new Error('DataGrid columns with an accessorFn must define an id.');
+};
+
+const getColumnLabel = <TRow extends RowData>(column: ColumnDef<TRow, unknown>): string => {
   if (typeof column.header === 'string' || typeof column.header === 'number') {
     return String(column.header);
   }
-  return column.id;
+  return getColumnId(column);
 };
 
-export function DataGridColumnMenu<TRow>({
+export function DataGridColumnMenu<TRow extends RowData>({
   columnId,
   columnLabel,
   columns,
@@ -52,7 +58,7 @@ export function DataGridColumnMenu<TRow>({
 
   if (!canOpen) return null;
 
-  const setSort = (sort: SortItem | null) => {
+  const setSort = (sort: { id: string; desc: boolean } | null) => {
     table.setSorting((current) => [
       ...current.filter((item) => item.id !== columnId),
       ...(sort ? [sort] : []),
@@ -105,13 +111,13 @@ export function DataGridColumnMenu<TRow>({
           )}
           {controls.pinning && (
             <div className="tk-grid-column-menu-section">
-              <button type="button" onClick={() => table.moveColumn(columnId, 'left')}>
+              <button type="button" onClick={() => table.getColumn(columnId)?.pin('left')}>
                 Pin {columnLabel} left
               </button>
-              <button type="button" onClick={() => table.moveColumn(columnId, 'right')}>
+              <button type="button" onClick={() => table.getColumn(columnId)?.pin('right')}>
                 Pin {columnLabel} right
               </button>
-              <button type="button" onClick={() => table.moveColumn(columnId, 'center')}>
+              <button type="button" onClick={() => table.getColumn(columnId)?.pin(false)}>
                 Unpin {columnLabel}
               </button>
             </div>
@@ -119,26 +125,29 @@ export function DataGridColumnMenu<TRow>({
           {controls.visibility && (
             <fieldset className="tk-grid-column-menu-section">
               <legend>Visible columns</legend>
-              {columns.map((column) => (
-                <label key={column.id}>
-                  <input
-                    type="checkbox"
-                    aria-label={`Show ${getColumnLabel(column)}`}
-                    checked={table.getState().columnVisibility[column.id] !== false}
-                    onChange={() => table.toggleColumnVisibility(column.id)}
-                  />
-                  {getColumnLabel(column)}
-                </label>
-              ))}
+              {columns.map((column) => {
+                const id = getColumnId(column);
+                return (
+                  <label key={id}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Show ${getColumnLabel(column)}`}
+                      checked={table.getColumn(id)?.getIsVisible() ?? false}
+                      onChange={() => table.getColumn(id)?.toggleVisibility()}
+                    />
+                    {getColumnLabel(column)}
+                  </label>
+                );
+              })}
             </fieldset>
           )}
           <button
             type="button"
             onClick={() => {
-              table.resetSlice('columnOrder');
-              table.resetSlice('columnVisibility');
-              table.resetSlice('columnPinning');
-              table.resetSlice('columnSizing');
+              table.resetColumnOrder();
+              table.resetColumnVisibility();
+              table.resetColumnPinning();
+              table.resetColumnSizing();
             }}
           >
             Reset columns

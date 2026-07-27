@@ -10,36 +10,6 @@
  * Source-of-truth mapping to docs/initial-spec.md §9.
  */
 
-import type {
-  CellPosition,
-  ColumnPinningState,
-  ColumnResizeSession,
-  ColumnSizingState,
-  Updater,
-} from '@lynellf/tablekit-core';
-
-// Re-export core types for pivot package consumers
-export type { Updater, Announcer } from '@lynellf/tablekit-core';
-export type {
-  CellPosition,
-  ColumnPinningState,
-  ColumnResizeSession,
-  ColumnSizingState,
-} from '@lynellf/tablekit-core';
-// Re-export DataVersion for pivot package consumers
-export type { DataVersion } from '@lynellf/tablekit-core/dataSource';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Callback types (Phase 1 F0.3)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Callback function type for state change handlers.
- * Accepts an Updater<T> (value or function) and returns void.
- * This is the correct type for onChange handlers in React.
- */
-export type OnChangeFn<T> = (updater: Updater<T>) => void;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Primitive aliases
 // ─────────────────────────────────────────────────────────────────────────────
@@ -162,34 +132,6 @@ export type PivotSortingState = Array<
     }
 >;
 
-/**
- * Pivot state. Shares `columnPinning`, `columnSizing`, `columnSizingInfo`, and
- * `focusedCell` with DataTableState. The pivot-specific slices are:
- * - `pivot`: the PivotConfig (controlled/uncontrolled).
- * - `expanded`: Record<RowPathKey, boolean>.
- * - `pivotSorting`: Array<{ level, by, … }>.
- */
-export interface PivotTableState {
-  pivot: PivotConfig;
-  expanded: PivotExpansionState;
-  pivotSorting: PivotSortingState;
-  columnPinning: ColumnPinningState;
-  columnSizing: ColumnSizingState;
-  columnSizingInfo: ColumnResizeSession | null;
-  focusedCell: CellPosition | null;
-}
-
-/** Default state for `createPivotTable`. */
-export const DEFAULT_PIVOT_STATE: PivotTableState = {
-  pivot: { rows: [], columns: [], measures: [] },
-  expanded: {},
-  pivotSorting: [],
-  columnPinning: { left: [], right: [] },
-  columnSizing: {},
-  columnSizingInfo: null,
-  focusedCell: null,
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Aggregator interface (§9.2)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -222,9 +164,6 @@ export interface Aggregator<TIn = unknown, TAcc = unknown, TOut = unknown> {
 
 /** MaybePromise utility, mirror of dataSource's MaybePromise. */
 export type MaybePromise<T> = T | Promise<T>;
-
-/** Lifecycle state for the latest aggregation request. */
-export type PivotTableStatus = 'idle' | 'loading' | 'success' | 'error';
 
 /**
  * The aggregation engine seam. M4 ships only the main-thread implementation;
@@ -390,124 +329,4 @@ export interface PivotResult<TRow = unknown> {
   leafColumns: Array<PivotLeafColumn<TRow>>;
   rowRoot: PivotRowNode<TRow>;
   grandTotals: Record<LeafColumnId, unknown>;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PivotTable instance interface (placeholder; full surface lands in phase 4)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Imperative facade. Full surface in phase 4. */
-export interface PivotTableInstance<TRow = unknown> {
-  getState(): PivotTableState;
-  setOptions(options: PivotTableOptions<TRow>): void;
-  subscribe(listener: () => void): () => void;
-  getResult(): PivotResult<TRow>;
-  getStatus(): PivotTableStatus;
-  getError(): Error | undefined;
-  getVisibleRows(): Array<PivotRowNode<TRow>>;
-  getHeaderRows(): Array<Array<{ node: PivotColumnNode | PivotLeafColumn; colSpan: number }>>;
-  getLeafColumns(): Array<PivotLeafColumn<TRow>>;
-  setPivot(updater: Updater<PivotConfig<TRow>>): void;
-  setExpanded(updater: Updater<PivotExpansionState>): void;
-  toggleExpanded(path: Array<FieldValue>): void;
-  /** Retry loading one expanded row path after an isolated child error. */
-  retryRow(path: Array<FieldValue>): void;
-  /** Re-run the latest root aggregation query. */
-  retry(): void;
-  setPivotSorting(updater: Updater<PivotSortingState>): void;
-  /** F0.3: Set column pinning state. */
-  setColumnPinning(updater: Updater<ColumnPinningState>): void;
-  /** F0.3: Set column sizing state. */
-  setColumnSizing(updater: Updater<ColumnSizingState>): void;
-  /** F0.3: Set column resize session state. */
-  setColumnSizingInfo(updater: Updater<ColumnResizeSession | null>): void;
-  /** F0.3: Start a resize session for the given column. */
-  startResize(columnId: string, startSize: number): void;
-  /** F0.3: Adjust the current resize session by the given delta. */
-  adjustResize(delta: number): void;
-  /** F0.3: Commit the current resize session and update columnSizing. */
-  commitResize(): void;
-  /** F0.3: Cancel the current resize session without updating columnSizing. */
-  cancelResize(): void;
-  /** F0.3: Set focused cell state. */
-  setFocusedCell(updater: Updater<CellPosition | null>): void;
-  announce(message: string, politeness?: 'polite' | 'assertive'): void;
-  /** Prop getter for the root treegrid element. */
-  getGridProps(consumerProps?: Record<string, unknown>): Record<string, unknown>;
-  /** Prop getter for the body rowgroup. */
-  getBodyProps(consumerProps?: Record<string, unknown>): Record<string, unknown>;
-  /** Prop getter for a row. */
-  getRowProps(
-    row: PivotRowNode<TRow>,
-    consumerProps?: Record<string, unknown>,
-  ): Record<string, unknown>;
-  /** Prop getter for a row-header cell. */
-  getRowHeaderProps(
-    row: PivotRowNode<TRow>,
-    consumerProps?: Record<string, unknown>,
-  ): Record<string, unknown>;
-  /** Prop getter for a column header. */
-  getHeaderProps(
-    node: PivotColumnNode | PivotLeafColumn,
-    consumerProps?: Record<string, unknown>,
-  ): Record<string, unknown>;
-  /** Prop getter for the expand/collapse toggle. */
-  getToggleExpandedProps(
-    row: PivotRowNode<TRow>,
-    consumerProps?: Record<string, unknown>,
-  ): Record<string, unknown>;
-  /** Prop getter for the footer rowgroup (grand-total row). Returns null if totals.row is disabled. */
-  getFooterProps(consumerProps?: Record<string, unknown>): Record<string, unknown> | null;
-  /** Prop getter for a totals column leaf. */
-  getTotalsColumnProps(
-    leaf: PivotLeafColumn<TRow>,
-    consumerProps?: Record<string, unknown>,
-  ): Record<string, unknown>;
-  /** Abort in-flight work and release engine resources. */
-  dispose(): void;
-}
-
-/** Options accepted by `createPivotTable`. Full surface in phase 4. */
-export interface PivotTableOptions<TRow = unknown> {
-  data: TRow[];
-  pivot: PivotConfig<TRow> | ((opts: { data: TRow[] }) => PivotConfig<TRow>);
-  initialState?: Partial<PivotTableState>;
-  state?: Partial<PivotTableState>;
-  /** Phase 1 F0.3: Changed from Updater<T> to OnChangeFn<T>. */
-  onPivotChange?: OnChangeFn<PivotConfig<TRow>>;
-  /** Phase 1 F0.3: Changed from Updater<T> to OnChangeFn<T>. */
-  onExpandedChange?: OnChangeFn<PivotExpansionState>;
-  /** Phase 1 F0.3: Changed from Updater<T> to OnChangeFn<T>. */
-  onPivotSortingChange?: OnChangeFn<PivotSortingState>;
-  /** R4 fix: Dedicated callback for column pinning changes. */
-  onColumnPinningChange?: OnChangeFn<ColumnPinningState>;
-  /** R4 fix: Dedicated callback for column sizing changes. */
-  onColumnSizingChange?: OnChangeFn<ColumnSizingState>;
-  /** R4 fix: Dedicated callback for column resize session changes. */
-  onColumnSizingInfoChange?: OnChangeFn<ColumnResizeSession | null>;
-  /** R4 fix: Dedicated callback for focused cell changes. */
-  onFocusedCellChange?: OnChangeFn<CellPosition | null>;
-  /** Phase 1 F0.3: Changed from Updater<T> to OnChangeFn<T>. */
-  onStateChange?: OnChangeFn<PivotTableState>;
-  /** Aggregation engine. Default: `createMainThreadEngine()`. */
-  engine?: AggregationEngine<TRow>;
-  /** Announcer. Default: `getGlobalAnnouncer()` (set by ReactAnnouncer in M1). */
-  announcer?: import('@lynellf/tablekit-core').Announcer;
-  /** getRowId for the source dataset. Default: index-based dev fallback (warning in M4). */
-  getRowId?: (row: TRow, index: number) => string;
-  /**
-   * R4-R7 fix: Data version token for mutable data identity.
-   * When the data array is mutated in-place (same reference), consumers can
-   * increment/publish a new version token to signal that the data changed.
-   * This triggers recomputation even when the data reference is unchanged.
-   * Supports both static version token and getVersion() function escape hatch
-   * to match the shared DataVersion<TRow> contract across core/client/hook boundaries.
-   */
-  dataVersion?: import('@lynellf/tablekit-core/dataSource').DataVersion<TRow>;
-  /**
-   * M6 phase 2: how Tab behaves inside the pivot grid.
-   * - 'exit' (default, APG-conformant): Tab moves focus out of the grid.
-   * - 'cells' (opt-in): Tab focuses the first cell; Arrow keys move within the row.
-   */
-  tabBehavior?: import('@lynellf/tablekit-core').TabBehavior;
 }

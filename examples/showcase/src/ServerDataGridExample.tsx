@@ -1,4 +1,4 @@
-import type { DataSource } from '@lynellf/tablekit-core/dataSource';
+import type { DataSource } from '@lynellf/tablekit-react';
 import { DataGrid } from '@lynellf/tablekit-react';
 import { useMemo, useState } from 'react';
 import { salesColumns, salesRows } from './data';
@@ -57,7 +57,7 @@ export function ServerDataGridExample({ height = 430 }: ServerDataGridExamplePro
       <output className="request-monitor" aria-live="polite">
         <span className="request-pulse" aria-hidden="true" />
         <span>{requestStatus}</span>
-        <code>@lynellf/tablekit-core/dataSource</code>
+        <code>@lynellf/tablekit-react</code>
       </output>
 
       <div className="demo-canvas">

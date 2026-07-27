@@ -157,7 +157,11 @@ test.describe('Tablekit Storybook', () => {
     await expect(grid.getByRole('columnheader', { name: 'Q1' })).toBeVisible();
     await expect(preview.getByText('Channel → Region', { exact: true })).toBeVisible();
     await expect(preview.getByText('Quarter → Year', { exact: true })).toBeVisible();
-    await expect(preview.getByText('Average of Margin', { exact: true })).toBeVisible();
+    await expect(
+      preview.getByLabel('Active pivot configuration').getByText('Average of Margin', {
+        exact: true,
+      }),
+    ).toBeVisible();
     await expect(preview.getByText('Region = North', { exact: true })).toBeVisible();
     await expect(pageErrors).toEqual([]);
   });

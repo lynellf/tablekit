@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 4 — State Engine + `createDataTable` Factory
 
 **Goal:** Implement the controlled-slice contract from spec §4.2 end-to-end. Ship `state.ts` (per-slice reducers + dispatch) and `createDataTable.ts` (the factory returning a `DataTableInstance<TRow>`). Round-trip tests prove the M0 exit criterion: **“Controlled + uncontrolled state round-trips.”**

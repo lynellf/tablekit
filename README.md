@@ -1,188 +1,60 @@
-# tablekit
+# TableKit
 
-Headless table primitives for the modern web — framework-free state engine, row pipeline, column model, PivotTable support, and first-class React adapters.
-
-**Status:** v2.2.0 — PivotGrid now exposes adapter-ready interaction events and imperative commands. See [`docs/migration-v1-to-v2.md`](./docs/migration-v1-to-v2.md) for migration from v1.
+Drop-in React data and pivot grids backed by TanStack Table and TanStack Virtual,
+with a framework-free pivot engine for main-thread, worker, and server execution.
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [`@lynellf/tablekit-core`](/packages/core) | Framework-agnostic state engine, row pipeline, column model, and event system. |
-| [`@lynellf/tablekit-react`](/packages/react) | React hooks, prop getters, announcer, and a11y validator for `@lynellf/tablekit-core`. |
-| [`@lynellf/tablekit-pivot`](/packages/pivot) | Framework-free PivotTable primitives, aggregation engine, and treegrid prop getters. |
-| [`@lynellf/tablekit-worker`](/packages/worker) | Worker-based pivot engine + message protocol + server engine reference factory. |
+| Package | Purpose |
+| --- | --- |
+| `@lynellf/tablekit-react` | Batteries-included `DataGrid` and `PivotGrid` components |
+| `@lynellf/tablekit-pivot` | Pivot configuration, aggregation trees, serialization, worker protocol, and server adapters |
 
 ## Install
 
 ```bash
-# Core only
-npm install @lynellf/tablekit-core
-
-# With React adapter
-npm install @lynellf/tablekit-core @lynellf/tablekit-react
-
-# Headless PivotTable support
-npm install @lynellf/tablekit-core @lynellf/tablekit-pivot
-
-# Rendered React PivotGrid support
-npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-react
-
-# Worker-backed pivot support
-npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-worker
+npm install @lynellf/tablekit-react
 ```
 
-Requires Node ≥ 20.
-
-## Quick start
-
-```ts
-import { createDataTable } from '@lynellf/tablekit-core';
-
-const table = createDataTable({ data, columns });
-table.getState();       // current state snapshot
-table.subscribe(() => { /* re-render */ });
-```
-
-See the rendered examples in [`examples/showcase/`](./examples/showcase/) and the package READMEs for the current public surface.
-
-## React DataGrid and PivotGrid
-
-`@lynellf/tablekit-react` includes rendered, virtualized components for the
-common table and pivot workflows. Import the default stylesheet once in your
-application:
+The React package installs the pivot engine and TanStack dependencies. Import the
+stylesheet once:
 
 ```tsx
 import { DataGrid, PivotGrid } from '@lynellf/tablekit-react';
 import '@lynellf/tablekit-react/styles.css';
-
-export function Tables() {
-  return (
-    <>
-      <DataGrid
-        rows={people}
-        columns={personColumns}
-        getRowId={(row) => row.id}
-        initialState={{ columnPinning: { left: ['name'], right: ['status'] } }}
-        columnControls
-        rowSelectionMode="multiple"
-        height={480}
-      />
-      <PivotGrid
-        data={sales}
-        pivot={{
-          rows: ['region', 'quarter'],
-          columns: ['year'],
-          measures: [{ id: 'sales', field: 'sales', aggregator: 'sum' }],
-        }}
-        pivotControls={{
-          position: 'right',
-          fields: [
-            { field: 'region', label: 'Region' },
-            { field: 'quarter', label: 'Quarter' },
-            { field: 'year', label: 'Year' },
-            { field: 'sales', label: 'Sales' },
-          ],
-        }}
-        getRowId={(row) => row.id}
-        initialState={{ columnPinning: { left: ['[2024]::sales'], right: [] } }}
-        height={480}
-      />
-    </>
-  );
-}
 ```
 
-`DataGrid` accepts either `rows` for client operations or an offset-capable
-`DataSource` for server filtering, sorting, and pagination. `PivotGrid` uses the
-main-thread aggregation engine by default and accepts an `AggregationEngine`
-for server root and child requests.
+`DataGrid` accepts TanStack column definitions directly:
 
-Both components use the existing `columnPinning` state slice. Pinned columns
-remain mounted while only center columns are virtualized. `PivotGrid` promotes
-any pinned generated leaf to its complete top-level column group so hierarchy
-headers remain contiguous; opposite sides within one group are rejected.
+```tsx
+const columns = [
+  { accessorKey: 'name', header: 'Name', enableSorting: true },
+  { accessorKey: 'amount', header: 'Amount' },
+];
 
-The enhanced UI remains opt-in. `columnControls={true}` adds column menus,
-pinning, visibility, reset, and pointer/keyboard reorder. `pivotControls={true}`
-adds a Rows/Columns/Values/Filters panel and infers fields from the first object
-row; pass an object to provide explicit field labels, panel position, and
-aggregator choices. These controls mutate the existing table and pivot state
-slices and add no runtime drag-and-drop dependency.
-
-| Workflow | DataGrid | PivotGrid |
-| --- | --- | --- |
-| Client filter/sort/page | Supported | Pre-aggregation filters supported |
-| Server execution | Offset `DataSource` | Root and child `AggregationEngine` requests |
-| Virtualization | Fixed-height rows and columns | Fixed-height rows and columns |
-| Frozen columns | Programmatic or menu-driven left/right pinning; selection stays fixed-left | Atomic top-level generated groups; row headers stay fixed-left; grand totals default right |
-| Enhanced controls | Opt-in menus, visibility, reset, and column reorder | Opt-in field builder for hierarchies, values, aggregations, and filters |
-| Selection and events | Single/multiple rows; row/cell click and double-click | Cell click/double-click, row double-click, and adapter commands for expand/collapse/sort |
-| Status and accessibility | Loading/empty/error, keyboard focus, grid ARIA | Root/child status, retry, keyboard focus, treegrid ARIA |
-
-The deterministic browser host contains client and server scenarios for both
-components at [`examples/m4-pivot-main-thread/`](./examples/m4-pivot-main-thread/)
-using `?functional-parity`.
-
-### Storybook examples
-
-The repository includes a Storybook reference that pairs each working example
-with its exact TypeScript implementation. It exercises public package entry
-points rather than workspace source aliases, and covers client and server data
-grids, enhanced column controls, client and worker-backed pivot grids, the
-built-in pivot configurator, and the server pivot engine.
-
-```bash
-pnpm examples:dev
-pnpm examples:build
-pnpm examples:test
+<DataGrid rows={rows} columns={columns} getRowId={(row) => row.id} />;
 ```
 
-Open a component's **Docs** page for the live canvas and copyable source, or use
-the **Controls** panel to vary supported inputs. The deployable Storybook lives
-at [`examples/showcase/`](./examples/showcase/).
+`PivotGrid` accepts raw rows and a pivot configuration:
 
-The rendered components intentionally do not promise Webix or AG Grid API,
-theme, or DOM compatibility. Variable-height rows, server-wide select-all,
-shift-range selection, per-level pivot subtotals, formulas, editing, range
-selection, paste, charts, and frozen rows remain outside the current surface.
-Cursor pagination remains a headless API and is not part of `DataGrid` server
-mode acceptance.
+```tsx
+<PivotGrid
+  data={rows}
+  pivot={{
+    rows: ['region'],
+    columns: ['year'],
+    measures: [{ id: 'sales', field: 'sales', aggregator: 'sum' }],
+  }}
+/>;
+```
 
-## Server modes
+Worker and server execution are available from:
 
-The library supports server-side pagination, sorting, and filtering via the `DataSource` interface and `useDataSource` hook. See [`docs/m3-server-modes/api-freeze.md`](./docs/m3-server-modes/api-freeze.md) for the API surface.
+- `@lynellf/tablekit-pivot/worker`
+- `@lynellf/tablekit-pivot/worker/entry`
+- `@lynellf/tablekit-pivot/worker/protocol`
+- `@lynellf/tablekit-pivot/server`
 
-A reference app demonstrating the four server mode patterns is at [`examples/m3-server-modes/`](./examples/m3-server-modes/).
-
-## Recipes
-
-Consumer-facing integration patterns. Each recipe is a self-contained copy-paste guide:
-
-| Recipe | What it solves |
-| --- | --- |
-| [`docs/recipes/layout.md`](./docs/recipes/layout.md) | Virtualization + sticky pinning in one scroll container |
-| [`docs/recipes/dnd-column-reorder.md`](./docs/recipes/dnd-column-reorder.md) | Dependency-free pointer column reorder |
-| [`docs/recipes/kbd-column-reorder.md`](./docs/recipes/kbd-column-reorder.md) | Keyboard "grab" pattern (Space → Arrows → Space) |
-| [`docs/recipes/split-pane.md`](./docs/recipes/split-pane.md) | Three viewports with scroll sync (for transformed parent layouts) |
-
-See [`docs/recipes/README.md`](./docs/recipes/) for the full index.
-
-## Guides & agent skills
-
-Concept maps aligning tablekit v2.2 against four external grid/pivot surfaces. Guides ship inside the `@lynellf/tablekit-react` npm package at `node_modules/@lynellf/tablekit-react/docs/guides/<target>/`:
-
-| Target | Description |
-| --- | --- |
-| [`docs/guides/webix-datagrid/`](./docs/guides/webix-datagrid/) | Webix DataTable → `@lynellf/tablekit-react` |
-| [`docs/guides/webix-pivot/`](./docs/guides/webix-pivot/) | Webix Pivot → `@lynellf/tablekit-pivot` |
-| [`docs/guides/ag-grid-datagrid/`](./docs/guides/ag-grid-datagrid/) | AG-Grid DataGrid → `@lynellf/tablekit-react` |
-| [`docs/guides/ag-grid-pivot/`](./docs/guides/ag-grid-pivot/) | AG-Grid Pivot → `@lynellf/tablekit-pivot` |
-
-## Bugs & Issues
-
-https://github.com/lynellf/table-kit/issues
-
-## License
-
-[MIT](./LICENSE)
+The architecture reset is recorded in
+[`docs/decisions/0001-adopt-tanstack-and-remove-tablekit-core.md`](docs/decisions/0001-adopt-tanstack-and-remove-tablekit-core.md).
+Requires Node 20+ and React 18+.

@@ -20,10 +20,8 @@ const meta = {
 
 ### Package map
 
-- \`@lynellf/tablekit-core\` — framework-independent data-table state and data-source contracts.
-- \`@lynellf/tablekit-react\` — rendered DataGrid/PivotGrid components, React hooks, virtualization, and accessibility helpers.
-- \`@lynellf/tablekit-pivot\` — pivot configuration, aggregation, result model, and main-thread engine.
-- \`@lynellf/tablekit-worker\` — worker and server pivot-engine adapters.
+- \`@lynellf/tablekit-react\` — drop-in DataGrid/PivotGrid components backed by TanStack Table and TanStack Virtual.
+- \`@lynellf/tablekit-pivot\` — pivot configuration, aggregation trees, and main-thread/worker/server execution.
 
 ### What these examples prove
 

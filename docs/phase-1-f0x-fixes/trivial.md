@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 1 F0.x Regression Fixes
 
 **Current request:** Fix Phase 1 implementation issues identified by reviewer before Phase 2 can proceed.

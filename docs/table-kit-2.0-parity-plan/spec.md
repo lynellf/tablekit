@@ -1,6 +1,11 @@
+<!-- Historical: true -->
 # Table Kit 2.0 parity implementation plan
 
-> Historical notice: this phased plan is retained for context only. Active implementation routing is superseded by [`docs/table-kit-functional-parity-spec.md`](../table-kit-functional-parity-spec.md).
+> **Superseded:** This phased plan is retained for historical context only.
+> Active implementation is routed through
+> [`ADR-0001`](../decisions/0001-adopt-tanstack-and-remove-tablekit-core.md)
+> and the
+> [TanStack architecture reset plan](../tanstack-architecture-reset/plan.md).
 
 **Status:** Revised implementation package for review
 **Source specification:** `docs/table-kit-2.0-parity-assessment-and-spec-v2.md` (revision 2)

@@ -1,9 +1,7 @@
 /**
  * @lynellf/tablekit-react — React live-region announcer.
  *
- * Mounts a visually-hidden `aria-live="polite"` div. The `useDataTable`
- * hook creates the announcer channel and passes it to this component (via props).
- * The channel is also shared with the table factory (via options).
+ * Mounts a visually-hidden `aria-live="polite"` element for a rendered grid.
  *
  * R5 fix: Uses subscription/disposal lifecycle via the AnnouncerChannel.
  * This ensures:
@@ -37,7 +35,7 @@ const POLITENESS_INTERVAL_MS = 1000;
  * Props for ReactAnnouncer.
  */
 export interface ReactAnnouncerProps {
-  /** The announcer channel created by useDataTable/usePivotTable. Shared with the table/pivot. */
+  /** The announcer channel shared with the rendered grid. */
   channel: AnnouncerChannel;
   politeness?: 'polite' | 'assertive';
 }

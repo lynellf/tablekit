@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 9 — Compatibility and migration gate
 
 **Track:** C0, then conditional C1–C4  

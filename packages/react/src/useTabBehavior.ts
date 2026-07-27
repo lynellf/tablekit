@@ -12,8 +12,9 @@
  * applies to the static content.
  */
 
-import type { TabBehavior } from '@lynellf/tablekit-core';
 import { useEffect, useRef } from 'react';
+
+export type TabBehavior = 'exit' | 'cells';
 
 interface UseTabBehaviorOptions {
   /**
@@ -21,7 +22,7 @@ interface UseTabBehaviorOptions {
    * Must be a ref (not the element directly) so the effect re-runs if the
    * grid element changes.
    */
-  gridRef: React.RefObject<HTMLElement | null>;
+  gridRef: React.RefObject<HTMLElement>;
   /**
    * Selected tab behavior. Default is 'exit' (APG-conformant).
    */

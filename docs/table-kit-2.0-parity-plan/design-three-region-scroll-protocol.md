@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # D2 three-region scroll protocol
 
 **Status:** accepted planning contract; implementation must satisfy this protocol before D2 browser work begins.

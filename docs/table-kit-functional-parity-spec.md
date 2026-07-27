@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Table Kit MVP Functional Parity — One-Shot Spec
 
 **Target:** `fix/resolve-open-issues`\

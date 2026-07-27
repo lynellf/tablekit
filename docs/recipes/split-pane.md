@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Split-pane custom-rendering recipe
 
 > Last verified against tablekit v2.2.0.

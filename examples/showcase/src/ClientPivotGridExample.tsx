@@ -170,7 +170,6 @@ export function ClientPivotGridExample({
               grandTotalColumnPosition: 'end',
             },
           }}
-          getRowId={(row) => row.id}
           initialState={{
             columnPinning: {
               left: primaryColumnField === 'year' ? ['[2025]::value'] : [],

@@ -55,10 +55,10 @@ const meta = {
 ### Install
 
 \`\`\`bash
-npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-react
+npm install @lynellf/tablekit-react
 \`\`\`
 
-\`PivotGrid\` and \`usePivotTable\` are exported by \`@lynellf/tablekit-react\`, but their aggregation engine and pivot types come from the optional peer package \`@lynellf/tablekit-pivot\`. Install the pivot package whenever you use either React pivot API.
+\`PivotGrid\` is exported by \`@lynellf/tablekit-react\`; its framework-free aggregation engine is included through \`@lynellf/tablekit-pivot\`.
 
 ### Configure the pivot
 

@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Keyboard column reorder recipe
 
 > Last verified against tablekit v2.2.0.

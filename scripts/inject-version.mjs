@@ -23,12 +23,6 @@ console.log(`Injecting version ${version} into package sources...`);
 
 const packages = [
   {
-    name: '@lynellf/tablekit-core',
-    file: resolve(root, 'packages/core/src/index.ts'),
-    pattern: /export const VERSION = '[\d.]+' as const;/,
-    replacement: `export const VERSION = '${version}' as const;`,
-  },
-  {
     name: '@lynellf/tablekit-react',
     file: resolve(root, 'packages/react/src/index.ts'),
     pattern: /export const VERSION = '[\d.]+' as const;/,
@@ -37,12 +31,6 @@ const packages = [
   {
     name: '@lynellf/tablekit-pivot',
     file: resolve(root, 'packages/pivot/src/index.ts'),
-    pattern: /export const VERSION = '[\d.]+' as const;/,
-    replacement: `export const VERSION = '${version}' as const;`,
-  },
-  {
-    name: '@lynellf/tablekit-worker',
-    file: resolve(root, 'packages/worker/src/version.ts'),
     pattern: /export const VERSION = '[\d.]+' as const;/,
     replacement: `export const VERSION = '${version}' as const;`,
   },

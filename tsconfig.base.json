@@ -26,8 +26,6 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@lynellf/tablekit-core": ["./packages/core/src/index.ts"],
-      "@lynellf/tablekit-core/*": ["./packages/core/src/*"],
       "@lynellf/tablekit-react": ["./packages/react/src/index.ts"],
       "@lynellf/tablekit-react/*": ["./packages/react/src/*"],
       "@lynellf/tablekit-pivot": ["./packages/pivot/src/index.ts"],

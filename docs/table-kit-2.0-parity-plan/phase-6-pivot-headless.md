@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 6 — Pivot headless parity
 
 **Track:** P1–P4  

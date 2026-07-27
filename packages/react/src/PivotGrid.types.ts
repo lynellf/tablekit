@@ -1,12 +1,4 @@
 import type {
-  Announcer,
-  CellPosition,
-  ColumnPinningState,
-  SliceChange,
-  TabBehavior,
-} from '@lynellf/tablekit-core';
-import type { DataVersion } from '@lynellf/tablekit-core/dataSource';
-import type {
   AggregationEngine,
   LeafColumnId,
   PivotConfig,
@@ -14,11 +6,33 @@ import type {
   PivotLeafColumn,
   PivotRowNode,
   PivotSortingState,
-  PivotTableState,
   RowPathKey,
 } from '@lynellf/tablekit-pivot';
+import type { ColumnPinningState, OnChangeFn } from '@tanstack/react-table';
 import type { ReactNode, Ref, SyntheticEvent } from 'react';
 import type { MessagesMap } from './messages';
+
+export interface PivotGridCellPosition {
+  rowId: string;
+  columnId: string;
+}
+
+export interface PivotGridState<TRow> {
+  pivot: PivotConfig<TRow>;
+  expanded: PivotExpansionState;
+  pivotSorting: PivotSortingState;
+  columnPinning: ColumnPinningState;
+  focusedCell: PivotGridCellPosition | null;
+}
+
+export interface PivotGridAnnouncer {
+  announce(message: string, politeness?: 'polite' | 'assertive'): void;
+}
+
+export interface PivotGridDataVersion<TRow> {
+  version?: string | number;
+  getVersion?: (data: TRow[]) => string | number;
+}
 
 export interface PivotGridValueContext<TRow> {
   value: unknown;
@@ -62,22 +76,21 @@ export interface PivotGridProps<TRow> {
   data: TRow[];
   pivot: PivotConfig<TRow> | ((options: { data: TRow[] }) => PivotConfig<TRow>);
   engine?: AggregationEngine<TRow>;
-  getRowId?: (row: TRow, index: number) => string;
-  dataVersion?: DataVersion<TRow>;
-  initialState?: Partial<PivotTableState>;
-  state?: Partial<PivotTableState>;
-  onPivotChange?: SliceChange<PivotConfig<TRow>>;
-  onExpandedChange?: SliceChange<PivotExpansionState>;
-  onPivotSortingChange?: SliceChange<PivotSortingState>;
-  onColumnPinningChange?: SliceChange<ColumnPinningState>;
-  onFocusedCellChange?: SliceChange<CellPosition | null>;
-  onStateChange?: SliceChange<PivotTableState>;
+  dataVersion?: PivotGridDataVersion<TRow>;
+  initialState?: Partial<PivotGridState<TRow>>;
+  state?: Partial<PivotGridState<TRow>>;
+  onPivotChange?: OnChangeFn<PivotConfig<TRow>>;
+  onExpandedChange?: OnChangeFn<PivotExpansionState>;
+  onPivotSortingChange?: OnChangeFn<PivotSortingState>;
+  onColumnPinningChange?: OnChangeFn<ColumnPinningState>;
+  onFocusedCellChange?: OnChangeFn<PivotGridCellPosition | null>;
+  onStateChange?: OnChangeFn<PivotGridState<TRow>>;
   onRowDoubleClick?: (event: PivotGridRowEvent<TRow>) => void;
   onCellClick?: (event: PivotGridCellEvent<TRow>) => void;
   onCellDoubleClick?: (event: PivotGridCellEvent<TRow>) => void;
-  announcer?: Announcer;
+  announcer?: PivotGridAnnouncer;
   messages?: Partial<MessagesMap>;
-  tabBehavior?: TabBehavior;
+  tabBehavior?: 'exit' | 'cells';
   height?: number;
   width?: number;
   rowHeight?: number;

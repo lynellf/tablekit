@@ -1,4 +1,4 @@
-import type { RowsQuery, RowsResult } from '@lynellf/tablekit-core/dataSource';
+import type { RowsQuery, RowsResult } from '@lynellf/tablekit-react';
 import type { SalesRow } from './data';
 
 export const waitForDelay = (milliseconds: number, signal: AbortSignal): Promise<void> =>

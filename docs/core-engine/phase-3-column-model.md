@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 3 — Column Model
 
 **Goal:** Resolve `ColumnDef<TRow, TValue>[]` into derived `Column` views with stable identity, accessor resolution, and shape-level derived getters (`getSize()`, `getIsPinned()`, `getIsVisible()`, `getIsSorted()`, `getCanSort()`, `getCanFilter()`, `getIndex()`).

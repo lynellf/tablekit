@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 1 Foundation — remediation round 7 bounded correction
 
 **Request class:** remediation follow-up

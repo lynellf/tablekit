@@ -1,8 +1,8 @@
 {
   "name": "@lynellf/tablekit-react",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "private": false,
-  "description": "Accessible React DataGrid and PivotGrid components, hooks, virtualization, and announcers.",
+  "description": "Accessible, batteries-included React DataGrid and PivotGrid components backed by TanStack.",
   "type": "module",
   "main": "./dist/tablekit-react.es.js",
   "module": "./dist/tablekit-react.es.js",
@@ -18,7 +18,7 @@
     },
     "./styles.css": "./dist/style.css"
   },
-  "files": ["dist", "docs"],
+  "files": ["dist"],
   "sideEffects": ["**/*.css"],
   "license": "MIT",
   "repository": {
@@ -29,24 +29,23 @@
     "url": "https://github.com/lynellf/table-kit/issues"
   },
   "homepage": "https://github.com/lynellf/table-kit",
-  "keywords": ["react", "table", "headless", "data-grid", "hooks"],
+  "keywords": ["react", "table", "data-grid", "pivot-grid", "tanstack"],
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "vite build && pnpm build:types && pnpm copy:guides",
+    "build": "vite build && pnpm build:types",
     "build:types": "tsc -p tsconfig.build.json",
-    "copy:guides": "node -e \"const{cpSync,existsSync,mkdirSync}=require('fs');const d='../../docs/guides';if(existsSync(d)){mkdirSync('docs',{recursive:true});cpSync(d,'docs/guides',{recursive:true});console.log('\\u2713 Copied docs/guides into package');}\"",
     "build:subpaths": "node vite.subpaths.config.mjs",
     "typecheck": "tsc -b"
   },
   "peerDependencies": {
-    "@lynellf/tablekit-core": "^2.2.0",
-    "@lynellf/tablekit-pivot": "^2.2.0",
     "react": ">=18.0.0"
   },
-  "peerDependenciesMeta": {
-    "@lynellf/tablekit-pivot": { "optional": true }
+  "dependencies": {
+    "@lynellf/tablekit-pivot": "workspace:^",
+    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.14.8"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

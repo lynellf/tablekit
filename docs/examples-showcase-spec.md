@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Spec: Tablekit Examples Showcase
 
 ## Objective

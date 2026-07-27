@@ -1,6 +1,6 @@
+import type { WorkerEngine } from '@lynellf/tablekit-pivot/worker';
+import { createWorkerEngine } from '@lynellf/tablekit-pivot/worker';
 import { PivotGrid } from '@lynellf/tablekit-react';
-import type { WorkerEngine } from '@lynellf/tablekit-worker';
-import { createWorkerEngine } from '@lynellf/tablekit-worker';
 import { useEffect, useState } from 'react';
 import { type SalesRow, formatCurrency, salesRows } from './data';
 
@@ -95,7 +95,6 @@ export function WorkerPivotExample() {
                 regionFilter === 'North' ? [{ field: 'region', op: 'equals', value: 'North' }] : [],
               totals: { grandTotalRow: true, grandTotalColumn: true },
             }}
-            getRowId={(row) => row.id}
             height={320}
             width={760}
             rowHeight={38}

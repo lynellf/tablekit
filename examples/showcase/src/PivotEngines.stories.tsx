@@ -15,10 +15,10 @@ const meta = {
 ### Install
 
 \`\`\`bash
-npm install @lynellf/tablekit-core @lynellf/tablekit-pivot @lynellf/tablekit-react @lynellf/tablekit-worker
+npm install @lynellf/tablekit-react
 \`\`\`
 
-The worker package supplies both the browser-worker adapter and the reference server-engine contract.
+The pivot package, installed by the React package, supplies browser-worker and server-engine subpaths.
 
 ### Choose an engine
 
@@ -40,7 +40,7 @@ type Story = StoryObj<typeof meta>;
 export const Worker: Story = {
   render: () => <WorkerPivotExample />,
   parameters: {
-    packagePaths: ['@lynellf/tablekit-worker', '@lynellf/tablekit-react'],
+    packagePaths: ['@lynellf/tablekit-pivot/worker', '@lynellf/tablekit-react'],
     docs: {
       description: {
         story:
@@ -59,7 +59,7 @@ export const Server: Story = {
   parameters: {
     packagePaths: [
       '@lynellf/tablekit-pivot/engine',
-      '@lynellf/tablekit-worker/server',
+      '@lynellf/tablekit-pivot/server',
       '@lynellf/tablekit-react',
     ],
     docs: {
