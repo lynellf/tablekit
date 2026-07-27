@@ -69,6 +69,10 @@ export interface PivotGridControls {
   fields?: PivotGridControlField[];
   position?: 'left' | 'right';
   aggregators?: string[];
+  presentation?: 'inline' | 'dialog' | 'drawer';
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export interface PivotGridProps<TRow> {

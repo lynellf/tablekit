@@ -271,6 +271,32 @@ describe('PivotGrid', () => {
     ]);
   });
 
+  it('sorts top-level row groups from a generated value-column header', async () => {
+    render(<PivotGrid data={sales} pivot={{ ...config, filters: [] }} />);
+
+    const sortAverage = screen.getByRole('button', { name: 'Sort Average for 2024' });
+    const averageHeader = sortAverage.closest('[role="columnheader"]');
+    const rowLabels = () =>
+      Array.from(document.querySelectorAll('.tk-pivot-row-header > span')).map(
+        (node) => node.textContent,
+      );
+
+    expect(averageHeader?.getAttribute('aria-sort')).toBeNull();
+    expect(rowLabels()).toEqual(['West', 'East']);
+
+    fireEvent.click(sortAverage);
+    await waitFor(() => expect(averageHeader?.getAttribute('aria-sort')).toBe('ascending'));
+    expect(rowLabels()).toEqual(['West', 'East']);
+
+    fireEvent.click(sortAverage);
+    await waitFor(() => expect(averageHeader?.getAttribute('aria-sort')).toBe('descending'));
+    expect(rowLabels()).toEqual(['East', 'West']);
+
+    fireEvent.click(sortAverage);
+    await waitFor(() => expect(averageHeader?.getAttribute('aria-sort')).toBeNull());
+    expect(rowLabels()).toEqual(['West', 'East']);
+  });
+
   it('renders filtered aggregation, generated headers, totals, and expansion ARIA', async () => {
     render(<PivotGrid data={sales} pivot={config} height={260} />);
 
@@ -664,6 +690,72 @@ describe('PivotGrid', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add row field' }));
     expect(screen.getByText('Quarter', { selector: '.tk-pivot-control-item-label' })).toBeTruthy();
+  });
+
+  it('opens pivot controls in a dialog and restores focus when they close', async () => {
+    const onOpenChange = vi.fn();
+    render(
+      <PivotGrid
+        data={sales}
+        pivot={config}
+        pivotControls={{
+          presentation: 'dialog',
+          onOpenChange,
+        }}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'Configure pivot' });
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('dialog', { name: 'Pivot controls' })).toBeNull();
+
+    fireEvent.click(trigger);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Pivot controls' });
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    expect(within(dialog).getByRole('complementary', { name: 'Pivot controls' })).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close pivot controls' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Pivot controls' })).toBeNull(),
+    );
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('supports a controlled drawer on either side of the pivot', async () => {
+    function ControlledDrawer() {
+      const [open, setOpen] = useState(true);
+      return (
+        <PivotGrid
+          data={sales}
+          pivot={config}
+          pivotControls={{
+            presentation: 'drawer',
+            position: 'left',
+            open,
+            onOpenChange: setOpen,
+          }}
+        />
+      );
+    }
+
+    render(<ControlledDrawer />);
+
+    const trigger = screen.getByRole('button', { name: 'Configure pivot' });
+    const drawer = screen.getByRole('dialog', { name: 'Pivot controls' });
+    expect(drawer.getAttribute('data-presentation')).toBe('drawer');
+    expect(drawer.getAttribute('data-position')).toBe('left');
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Close pivot controls' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Pivot controls' })).toBeNull(),
+    );
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('moves pivot dimensions between hierarchy zones with native drag and drop', () => {

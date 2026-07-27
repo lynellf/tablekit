@@ -20,6 +20,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { PivotControlsSurface } from './PivotControlsSurface';
 import { PivotFieldBuilder } from './PivotFieldBuilder';
 import type {
   PivotGridCellEvent,
@@ -408,6 +409,64 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
       .sort((a, b) => a.start - b.start);
   const getHeaderRowSpan = (node: PivotColumnNode | PivotLeafColumn, rowIndex: number): number =>
     'measureId' in node ? Math.max(1, headerRows.length - rowIndex) : 1;
+  const getLeafSort = (leaf: PivotLeafColumn<TRow>) =>
+    state.pivotSorting.find((item) => {
+      if (item.level !== 0 || item.by !== 'measure' || item.measureId !== leaf.measureId) {
+        return false;
+      }
+      return leaf.isTotal
+        ? item.columnPath === undefined
+        : JSON.stringify(item.columnPath) === JSON.stringify(leaf.path);
+    });
+  const getLeafSortDirection = (
+    leaf: PivotLeafColumn<TRow>,
+  ): 'ascending' | 'descending' | undefined => {
+    const sort = getLeafSort(leaf);
+    return sort?.desc ? 'descending' : sort ? 'ascending' : undefined;
+  };
+  const toggleLeafSort = (leaf: PivotLeafColumn<TRow>) => {
+    const currentSort = getLeafSort(leaf);
+    const otherLevels = state.pivotSorting.filter((item) => item.level !== 0);
+    if (currentSort?.desc) {
+      setPivotSorting(otherLevels);
+      return;
+    }
+    const nextSort: PivotSortingState[number] = {
+      level: 0,
+      by: 'measure',
+      measureId: leaf.measureId,
+      ...(leaf.isTotal ? {} : { columnPath: leaf.path }),
+      desc: currentSort !== undefined,
+    };
+    setPivotSorting([nextSort, ...otherLevels]);
+  };
+  const renderHeaderContent = (node: PivotColumnNode | PivotLeafColumn): ReactNode => {
+    const label = renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''));
+    if (!('measureId' in node)) return label;
+    const currentSort = getLeafSort(node);
+    const rawLabel = labelOf(node);
+    const accessibleLabel =
+      (typeof rawLabel === 'string' && rawLabel.length > 0) || typeof rawLabel === 'number'
+        ? String(rawLabel)
+        : node.measureId;
+    const pathLabel = node.isTotal
+      ? ' grand total'
+      : node.path.length > 0
+        ? ` for ${node.path.map(String).join(' / ')}`
+        : '';
+    return (
+      <div className="tk-grid-header-label">
+        <span className="tk-grid-header-title">{label}</span>
+        <button
+          type="button"
+          className="tk-grid-sort-button"
+          aria-label={`Sort ${accessibleLabel}${pathLabel}`}
+          data-sort={currentSort?.desc ? 'descending' : currentSort ? 'ascending' : 'none'}
+          onClick={() => toggleLeafSort(node)}
+        />
+      </div>
+    );
+  };
   const bodyHeight = rowVirtualizer.getTotalSize();
 
   const renderCellValue = (
@@ -586,19 +645,27 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     '--tk-pivot-row-header-width': `${rowHeaderWidth}px`,
     '--tk-pivot-scroll-left': '0px',
   };
+  const pivotControlsPresentation = pivotControls?.presentation ?? 'inline';
+  const pivotBuilder = pivotControls ? (
+    <PivotFieldBuilder<TRow>
+      config={state.pivot as PivotConfig<TRow>}
+      controls={pivotControls}
+      data={data}
+      onChange={updateBuilderPivot}
+    />
+  ) : null;
 
   return (
     <div className={['tk-pivot-grid', className].filter(Boolean).join(' ')} style={rootStyle}>
       <Announcer />
+      {pivotControls && pivotControlsPresentation !== 'inline' && (
+        <PivotControlsSurface controls={pivotControls}>{pivotBuilder}</PivotControlsSurface>
+      )}
       <div className="tk-pivot-layout">
-        {pivotControls && (pivotControls.position ?? 'right') === 'left' && (
-          <PivotFieldBuilder<TRow>
-            config={state.pivot as PivotConfig<TRow>}
-            controls={pivotControls}
-            data={data}
-            onChange={updateBuilderPivot}
-          />
-        )}
+        {pivotControls &&
+          pivotControlsPresentation === 'inline' &&
+          (pivotControls.position ?? 'right') === 'left' &&
+          pivotBuilder}
         <div
           ref={gridRef}
           role="treegrid"
@@ -629,6 +696,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                           role="columnheader"
                           aria-colspan={'colSpan' in node ? node.colSpan : 1}
                           aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
+                          aria-sort={'measureId' in node ? getLeafSortDirection(node) : undefined}
                           className="tk-pivot-column-header"
                           style={{
                             ...getRenderedPosition(renderedHeader),
@@ -636,7 +704,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                             height: rowSpan > 1 ? rowSpan * HEADER_ROW_HEIGHT : undefined,
                           }}
                         >
-                          {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
+                          {renderHeaderContent(node)}
                         </div>
                       );
                     })}
@@ -663,6 +731,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                           role="columnheader"
                           aria-colspan={'colSpan' in node ? node.colSpan : 1}
                           aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
+                          aria-sort={'measureId' in node ? getLeafSortDirection(node) : undefined}
                           className={`tk-pivot-column-header tk-pivot-pinned-${pinned}`}
                           data-pinned={pinned}
                           style={{
@@ -671,7 +740,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                             height: rowSpan > 1 ? rowSpan * HEADER_ROW_HEIGHT : undefined,
                           }}
                         >
-                          {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
+                          {renderHeaderContent(node)}
                         </div>
                       );
                     })}
@@ -806,14 +875,10 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
             </div>
           )}
         </div>
-        {pivotControls && (pivotControls.position ?? 'right') === 'right' && (
-          <PivotFieldBuilder<TRow>
-            config={state.pivot as PivotConfig<TRow>}
-            controls={pivotControls}
-            data={data}
-            onChange={updateBuilderPivot}
-          />
-        )}
+        {pivotControls &&
+          pivotControlsPresentation === 'inline' &&
+          (pivotControls.position ?? 'right') === 'right' &&
+          pivotBuilder}
       </div>
     </div>
   );

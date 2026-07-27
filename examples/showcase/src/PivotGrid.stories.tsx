@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useArgs } from 'storybook/preview-api';
 import {
   type ChannelFilter,
   ClientPivotGridExample,
@@ -13,6 +14,9 @@ import { PivotBuilderExample } from './PivotBuilderExample';
 import pivotBuilderSource from './PivotBuilderExample.tsx?raw';
 
 interface PivotGridStoryArgs {
+  controlsOpen?: boolean;
+  controlsPosition?: 'left' | 'right';
+  controlsPresentation?: 'inline' | 'dialog' | 'drawer';
   height: number;
   rowHeaderWidth: number;
   primaryRowField: PivotDimension;
@@ -70,11 +74,11 @@ npm install @lynellf/tablekit-react
 
 Use the controls below to change each part of that configuration and compare the live result with the source panel.
 
-\`pivotControls\` is the opt-in rendered field builder. Pass \`true\` to infer fields from the first source row, or provide \`{ fields, position, aggregators }\` for explicit labels, placement, and aggregation choices. The panel edits the same \`PivotConfig\` used by \`usePivotTable\`; no parallel configuration model or drag-and-drop dependency is introduced.
+\`pivotControls\` is the opt-in rendered field builder. Pass \`true\` to infer fields from the first source row, or provide \`{ fields, position, aggregators }\` for explicit labels, placement, and aggregation choices. Set \`presentation\` to \`inline\`, \`dialog\`, or \`drawer\`; overlay visibility can be controlled with \`open\` and \`onOpenChange\`. The builder edits the same \`PivotConfig\` used by \`usePivotTable\`; no parallel configuration model or drag-and-drop dependency is introduced.
 
 ### Sorting
 
-The pivot engine supports per-level sorting by group label or measure through \`PivotSortingState\`, \`initialState.pivotSorting\`, and \`setPivotSorting()\`. The rendered \`PivotGrid\` exposes the state callbacks, but header-click sorting is not currently wired into its generated column headers. Column headers therefore do not sort when clicked.`,
+The pivot engine supports per-level sorting by group label or measure through \`PivotSortingState\`, \`initialState.pivotSorting\`, and \`setPivotSorting()\`. Generated value-column headers include sort buttons that order top-level row groups by that measure and column path. Each button cycles ascending, descending, then unsorted and updates the same controlled or uncontrolled pivot sorting state.`,
       },
     },
   },
@@ -86,6 +90,26 @@ The pivot engine supports per-level sorting by group label or measure through \`
     rowHeaderWidth: {
       control: { type: 'range', min: 160, max: 320, step: 10 },
       description: 'Width of the pinned row-hierarchy column.',
+    },
+    controlsPresentation: {
+      name: 'Presentation',
+      control: { type: 'select' },
+      options: ['inline', 'dialog', 'drawer'],
+      description: 'Renders the built-in pivot controls beside or over the treegrid.',
+      table: { category: 'Pivot controls' },
+    },
+    controlsPosition: {
+      name: 'Position',
+      control: { type: 'inline-radio' },
+      options: ['left', 'right'],
+      description: 'Places inline controls or anchors the drawer and trigger.',
+      table: { category: 'Pivot controls' },
+    },
+    controlsOpen: {
+      name: 'Open',
+      control: { type: 'boolean' },
+      description: 'Controls dialog or drawer visibility.',
+      table: { category: 'Pivot controls' },
     },
     primaryRowField: {
       name: 'Primary row field',
@@ -192,6 +216,9 @@ export const ClientData: Story = {
 
 export const BuiltInConfigurator: Story = {
   args: {
+    controlsOpen: false,
+    controlsPosition: 'right',
+    controlsPresentation: 'inline',
     height: 520,
     rowHeaderWidth: 190,
     primaryRowField: 'region',
@@ -203,18 +230,34 @@ export const BuiltInConfigurator: Story = {
     measure: 'revenue',
     aggregation: 'sum',
   },
-  render: ({ height, rowHeaderWidth }) => (
-    <PivotBuilderExample height={height} rowHeaderWidth={rowHeaderWidth} />
-  ),
+  render: function BuiltInConfiguratorStory() {
+    const [args, updateArgs] = useArgs<PivotGridStoryArgs>();
+    return (
+      <PivotBuilderExample
+        controlsOpen={args.controlsOpen}
+        controlsPosition={args.controlsPosition}
+        controlsPresentation={args.controlsPresentation}
+        height={args.height}
+        onControlsOpenChange={(open) => updateArgs({ controlsOpen: open })}
+        rowHeaderWidth={args.rowHeaderWidth}
+      />
+    );
+  },
   parameters: {
     packagePaths: ['@lynellf/tablekit-pivot', '@lynellf/tablekit-react'],
     controls: {
-      include: ['height', 'rowHeaderWidth'],
+      include: [
+        'height',
+        'rowHeaderWidth',
+        'controlsPresentation',
+        'controlsPosition',
+        'controlsOpen',
+      ],
     },
     docs: {
       description: {
         story:
-          'The field builder is rendered by PivotGrid itself. It can reorder or move row and column hierarchy fields, change or add measures, select an aggregation, and create declarative filters while the visual result remains beside the controls.',
+          'The field builder is rendered by PivotGrid itself. Use the Presentation, Position, and Open controls to compare its inline, dialog, and drawer layouts, then reorder or move hierarchy fields, change measures, and create declarative filters.',
       },
       source: {
         code: pivotBuilderSource,

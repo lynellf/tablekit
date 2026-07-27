@@ -123,7 +123,9 @@ test.describe('Tablekit Storybook', () => {
     await expect(
       preview.getByText('@lynellf/tablekit-pivot', { exact: true }).first(),
     ).toBeVisible();
-    await expect(preview.getByText(/header-click sorting is not currently wired/i)).toBeVisible();
+    await expect(
+      preview.getByText(/generated value-column headers include sort buttons/i),
+    ).toBeVisible();
     await expect(pageErrors).toEqual([]);
   });
 
@@ -154,7 +156,7 @@ test.describe('Tablekit Storybook', () => {
     const preview = page.frameLocator('#storybook-preview-iframe');
     const grid = preview.getByRole('treegrid', { name: 'Client revenue pivot grid' });
     await expect(grid.getByRole('button', { name: 'Expand Direct' })).toBeVisible();
-    await expect(grid.getByRole('columnheader', { name: 'Q1' })).toBeVisible();
+    await expect(grid.getByRole('columnheader', { name: 'Q1', exact: true })).toBeVisible();
     await expect(preview.getByText('Channel → Region', { exact: true })).toBeVisible();
     await expect(preview.getByText('Quarter → Year', { exact: true })).toBeVisible();
     await expect(
@@ -183,5 +185,45 @@ test.describe('Tablekit Storybook', () => {
 
     await expect(grid.getByRole('button', { name: 'Expand North' })).toBeVisible();
     await expect(grid.getByRole('button', { name: 'Expand South' })).toHaveCount(0);
+  });
+
+  test('configures the pivot field builder presentation from Storybook controls', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+
+    await page.goto('/?path=/story/components-pivotgrid--built-in-configurator');
+
+    const preview = page.frameLocator('#storybook-preview-iframe');
+    await expect(preview.getByRole('complementary', { name: 'Pivot controls' })).toBeVisible();
+
+    await page.getByRole('combobox', { name: 'controlsPresentation' }).selectOption('dialog');
+
+    const trigger = preview.getByRole('button', { name: 'Configure pivot' });
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await trigger.click();
+
+    const dialog = preview.getByRole('dialog', { name: 'Pivot controls' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('data-presentation', 'dialog');
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    await page.getByRole('combobox', { name: 'controlsPresentation' }).selectOption('drawer');
+    await page.getByRole('radio', { name: 'left' }).check();
+    const openControlRow = page.getByRole('row', {
+      name: /Open Controls dialog or drawer visibility/,
+    });
+    await openControlRow.getByText('True', { exact: true }).click();
+    await expect(openControlRow.getByRole('switch', { name: 'controlsOpen' })).toBeChecked();
+
+    const drawer = preview.getByRole('dialog', { name: 'Pivot controls' });
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveAttribute('data-presentation', 'drawer');
+    await expect(drawer).toHaveAttribute('data-position', 'left');
+    await expect(pageErrors).toEqual([]);
   });
 });
