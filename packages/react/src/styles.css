@@ -12,12 +12,25 @@
   font: 14px / 1.35 system-ui, sans-serif;
 }
 
-.tk-grid-viewport,
-.tk-pivot-viewport {
+.tk-grid-viewport {
   position: relative;
   width: min(100%, var(--tk-grid-width));
   height: var(--tk-grid-height);
   overflow: auto;
+  border: 1px solid var(--tk-border-color);
+  background: var(--tk-row-background);
+}
+
+.tk-pivot-viewport {
+  position: relative;
+  display: grid;
+  width: min(100%, var(--tk-grid-width));
+  height: var(--tk-grid-height);
+  grid-template-rows:
+    var(--tk-pivot-header-height)
+    minmax(0, 1fr)
+    var(--tk-pivot-footer-height);
+  overflow: hidden;
   border: 1px solid var(--tk-border-color);
   background: var(--tk-row-background);
 }
@@ -141,8 +154,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
-.tk-grid-header,
-.tk-pivot-header {
+.tk-grid-header {
   position: sticky;
   z-index: 4;
   top: 0;
@@ -155,13 +167,67 @@
 }
 
 .tk-pivot-header {
-  height: 58px;
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  overflow: hidden;
+  background: var(--tk-header-background);
+  border-bottom: 1px solid var(--tk-border-color);
 }
 
 .tk-pivot-header-row {
   position: absolute;
   left: 0;
   width: 100%;
+}
+
+.tk-pivot-body-viewport {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tk-pivot-footer {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid var(--tk-border-color);
+  background: var(--tk-header-background);
+}
+
+.tk-pivot-scroll-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transform: translate3d(calc(0px - var(--tk-pivot-scroll-left)), 0, 0);
+  will-change: transform;
+}
+
+.tk-pivot-fixed-layer {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tk-pivot-fixed-layer > * {
+  pointer-events: auto;
+}
+
+.tk-pivot-row-pinned-layer {
+  position: sticky;
+  z-index: 2;
+  left: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tk-pivot-row-pinned-layer > * {
+  pointer-events: auto;
 }
 
 .tk-grid-column-header,
@@ -391,6 +457,10 @@
 .tk-pivot-pinned-right {
   z-index: 2;
   background: var(--tk-row-background);
+}
+
+.tk-pivot-corner {
+  z-index: 3;
 }
 
 .tk-pivot-corner,

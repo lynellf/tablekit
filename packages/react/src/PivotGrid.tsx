@@ -17,6 +17,7 @@ import {
   type SyntheticEvent,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from 'react';
 import { PivotFieldBuilder } from './PivotFieldBuilder';
@@ -203,21 +204,51 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
   const headerHeight = Math.max(1, headerRows.length) * HEADER_ROW_HEIGHT;
   const showGrandTotal = state.pivot.totals?.grandTotalRow !== false && orderedLeaves.length > 0;
 
-  const [viewport, setViewport] = useState({ top: 0, left: 0, height, width });
+  const bodyViewportHeight = Math.max(0, height - headerHeight - (showGrandTotal ? rowHeight : 0));
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({
+    top: 0,
+    left: 0,
+    height: bodyViewportHeight,
+    width,
+  });
+  useEffect(() => {
+    const element = scrollRef.current;
+    const updateSize = () => {
+      const nextHeight = element?.clientHeight || bodyViewportHeight;
+      const nextWidth = element?.clientWidth || width;
+      setViewport((current) =>
+        current.height === nextHeight && current.width === nextWidth
+          ? current
+          : { ...current, height: nextHeight, width: nextWidth },
+      );
+    };
+    updateSize();
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [bodyViewportHeight, width]);
   const focusedRowIndex = state.focusedCell
     ? rows.findIndex((row) => row.key === state.focusedCell?.rowId)
     : undefined;
+  const rowRectCallbackRef = useRef<((rect: { width: number; height: number }) => void) | null>(
+    null,
+  );
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
-    getScrollElement: () => gridRef.current,
+    getScrollElement: () => scrollRef.current,
     estimateSize: () => rowHeight,
     overscan: overscanRows,
     observeElementRect: (_instance, callback) => {
+      rowRectCallbackRef.current = callback;
       callback({ width: viewport.width, height: viewport.height });
-      return () => undefined;
+      return () => {
+        rowRectCallbackRef.current = null;
+      };
     },
     observeElementOffset: (_instance, callback) => {
-      callback(Math.max(0, viewport.top - headerHeight), false);
+      callback(viewport.top, false);
       return () => undefined;
     },
     rangeExtractor: (range) => {
@@ -227,24 +258,34 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
         : [...new Set([...indexes, focusedRowIndex])].sort((a, b) => a - b);
     },
   });
+  useEffect(() => {
+    rowRectCallbackRef.current?.({ width: viewport.width, height: viewport.height });
+  }, [viewport.height, viewport.width]);
   const leftWidth = columnRegions.left.reduce((total, leaf) => total + leaf.size, 0);
   const rightWidth = columnRegions.right.reduce((total, leaf) => total + leaf.size, 0);
   const focusedCenterColumnIndex = state.focusedCell
     ? columnRegions.center.findIndex((leaf) => leaf.id === state.focusedCell?.columnId)
     : undefined;
+  const columnRectCallbackRef = useRef<((rect: { width: number; height: number }) => void) | null>(
+    null,
+  );
   const columnVirtualizer = useVirtualizer({
     horizontal: true,
     count: columnRegions.center.length,
     enabled: columnRegions.center.length > 0,
-    getScrollElement: () => gridRef.current,
+    getScrollElement: () => scrollRef.current,
     estimateSize: (index) => columnRegions.center[index]?.size ?? 0,
     overscan: overscanColumns,
     observeElementRect: (_instance, callback) => {
-      callback({
+      columnRectCallbackRef.current = callback;
+      const rect = {
         width: Math.max(0, viewport.width - rowHeaderWidth - leftWidth - rightWidth),
         height: viewport.height,
-      });
-      return () => undefined;
+      };
+      callback(rect);
+      return () => {
+        columnRectCallbackRef.current = null;
+      };
     },
     observeElementOffset: (_instance, callback) => {
       callback(viewport.left, false);
@@ -257,6 +298,12 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
         : [...new Set([...indexes, focusedCenterColumnIndex])].sort((a, b) => a - b);
     },
   });
+  useEffect(() => {
+    columnRectCallbackRef.current?.({
+      width: Math.max(0, viewport.width - rowHeaderWidth - leftWidth - rightWidth),
+      height: viewport.height,
+    });
+  }, [leftWidth, rightWidth, rowHeaderWidth, viewport.height, viewport.width]);
   const rowItems = rowVirtualizer.getVirtualItems();
   const columnItems = columnVirtualizer.getVirtualItems();
   const centerStart = rowHeaderWidth + leftWidth;
@@ -310,27 +357,23 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     rightNaturalOffset += leaf.size;
     return rendered;
   });
-  const renderedLeaves = [...renderedLeftLeaves, ...renderedCenterLeaves, ...renderedRightLeaves];
   const allLeafLayouts = [...renderedLeftLeaves, ...allCenterLeafLayouts, ...renderedRightLeaves];
   const contentWidth = rightStart + rightWidth;
   const leafLayoutById = new Map(allLeafLayouts.map((rendered) => [rendered.leaf.id, rendered]));
   const renderedCenterLeafIds = new Set(renderedCenterLeaves.map(({ leaf }) => leaf.id));
-  const getRenderedLeft = (rendered: {
+  const getRenderedPosition = (rendered: {
     pinned: PivotPinnedSide;
     pinnedOffset: number;
     start: number;
     size: number;
-  }): number => {
+  }): CSSProperties => {
     if (rendered.pinned === 'left') {
-      return viewport.left + rowHeaderWidth + rendered.pinnedOffset;
+      return { left: rowHeaderWidth + rendered.pinnedOffset };
     }
     if (rendered.pinned === 'right') {
-      return Math.min(
-        rendered.start,
-        viewport.left + viewport.width - rendered.pinnedOffset - rendered.size,
-      );
+      return { right: rendered.pinnedOffset };
     }
-    return rendered.start;
+    return { left: rendered.start };
   };
   const getRenderedHeaders = (headerRow: HeaderEntry[]): RenderedPivotHeader[] =>
     headerRow
@@ -351,7 +394,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
         return [{ node, pinned, pinnedOffset, start, size }];
       })
       .sort((a, b) => a.start - b.start);
-  const bodyHeight = rowVirtualizer.getTotalSize() + (showGrandTotal ? rowHeight : 0);
+  const bodyHeight = rowVirtualizer.getTotalSize();
 
   const renderCellValue = (
     value: unknown,
@@ -386,6 +429,94 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
       columnId: leaf.id,
       nativeEvent,
     });
+
+  const renderRowCell = (
+    row: PivotRowNode<TRow>,
+    renderedLeaf: RenderedPivotLeaf<TRow>,
+  ): ReactNode => {
+    const { leaf, pinned, size } = renderedLeaf;
+    const focused = state.focusedCell?.rowId === row.key && state.focusedCell.columnId === leaf.id;
+    return (
+      <div
+        key={leaf.id}
+        role="gridcell"
+        className={['tk-pivot-cell', pinned && `tk-pivot-pinned-${pinned}`]
+          .filter(Boolean)
+          .join(' ')}
+        data-column-id={leaf.id}
+        data-row-id={row.key}
+        data-pinned={pinned || undefined}
+        data-pivot-cell-id={`${row.key}:${leaf.id}`}
+        tabIndex={focused ? 0 : -1}
+        style={{ ...getRenderedPosition(renderedLeaf), width: size }}
+        onFocus={() => setFocusedCell({ rowId: row.key, columnId: leaf.id })}
+        onClick={(event) => {
+          event.currentTarget.focus();
+          publishCellEvent(onCellClick, row.values[leaf.id], row, leaf, false, event);
+        }}
+        onDoubleClick={(event) =>
+          publishCellEvent(onCellDoubleClick, row.values[leaf.id], row, leaf, false, event)
+        }
+        onKeyDown={(event) => {
+          if (!onCellClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+          event.preventDefault();
+          publishCellEvent(onCellClick, row.values[leaf.id], row, leaf, false, event);
+        }}
+      >
+        {renderCellValue(row.values[leaf.id], row, leaf, false)}
+      </div>
+    );
+  };
+
+  const renderGrandTotalCell = (renderedLeaf: RenderedPivotLeaf<TRow>): ReactNode => (
+    <div
+      key={renderedLeaf.leaf.id}
+      role="gridcell"
+      className={['tk-pivot-cell', renderedLeaf.pinned && `tk-pivot-pinned-${renderedLeaf.pinned}`]
+        .filter(Boolean)
+        .join(' ')}
+      data-column-id={renderedLeaf.leaf.id}
+      data-pinned={renderedLeaf.pinned || undefined}
+      tabIndex={-1}
+      style={{ ...getRenderedPosition(renderedLeaf), width: renderedLeaf.size }}
+      onFocus={() => setFocusedCell(null)}
+      onClick={(event) => {
+        event.currentTarget.focus();
+        publishCellEvent(
+          onCellClick,
+          result.grandTotals[renderedLeaf.leaf.id],
+          null,
+          renderedLeaf.leaf,
+          true,
+          event,
+        );
+      }}
+      onDoubleClick={(event) =>
+        publishCellEvent(
+          onCellDoubleClick,
+          result.grandTotals[renderedLeaf.leaf.id],
+          null,
+          renderedLeaf.leaf,
+          true,
+          event,
+        )
+      }
+      onKeyDown={(event) => {
+        if (!onCellClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        publishCellEvent(
+          onCellClick,
+          result.grandTotals[renderedLeaf.leaf.id],
+          null,
+          renderedLeaf.leaf,
+          true,
+          event,
+        );
+      }}
+    >
+      {renderCellValue(result.grandTotals[renderedLeaf.leaf.id], null, renderedLeaf.leaf, true)}
+    </div>
+  );
 
   const onGridKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const activeCell = document.activeElement as HTMLElement | null;
@@ -436,7 +567,10 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     '--tk-grid-height': `${height}px`,
     '--tk-grid-width': `${width}px`,
     '--tk-row-height': `${rowHeight}px`,
+    '--tk-pivot-footer-height': `${showGrandTotal ? rowHeight : 0}px`,
+    '--tk-pivot-header-height': `${headerHeight}px`,
     '--tk-pivot-row-header-width': `${rowHeaderWidth}px`,
+    '--tk-pivot-scroll-left': '0px',
   };
 
   return (
@@ -459,25 +593,8 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
           aria-label={ariaLabel}
           aria-busy={status === 'loading' ? true : undefined}
           onKeyDown={onGridKeyDown}
-          onScroll={(event) => {
-            const element = event.currentTarget;
-            setViewport({
-              top: element.scrollTop,
-              left: element.scrollLeft,
-              height: element.clientHeight || height,
-              width: element.clientWidth || width,
-            });
-          }}
         >
-          <div className="tk-pivot-header" style={{ width: contentWidth, height: headerHeight }}>
-            <div
-              role="columnheader"
-              className="tk-pivot-corner"
-              data-pinned="left"
-              style={{ left: viewport.left, width: rowHeaderWidth }}
-            >
-              Rows
-            </div>
+          <div className="tk-pivot-header" style={{ height: headerHeight }}>
             {headerRows.map((headerRow, rowIndex) => (
               <div
                 // biome-ignore lint/suspicious/noArrayIndexKey: hierarchy depth is stable
@@ -486,241 +603,182 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                 className="tk-pivot-header-row"
                 style={{ top: rowIndex * HEADER_ROW_HEIGHT, height: HEADER_ROW_HEIGHT }}
               >
-                {getRenderedHeaders(headerRow).map((renderedHeader) => {
-                  const { node, pinned, size } = renderedHeader;
-                  return (
+                <div className="tk-pivot-scroll-canvas" style={{ width: contentWidth }}>
+                  {getRenderedHeaders(headerRow)
+                    .filter(({ pinned }) => pinned === false)
+                    .map((renderedHeader) => {
+                      const { node, size } = renderedHeader;
+                      return (
+                        <div
+                          key={`${rowIndex}:${node.id}`}
+                          role="columnheader"
+                          aria-colspan={'colSpan' in node ? node.colSpan : 1}
+                          className="tk-pivot-column-header"
+                          style={{ ...getRenderedPosition(renderedHeader), width: size }}
+                        >
+                          {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
+                        </div>
+                      );
+                    })}
+                </div>
+                <div className="tk-pivot-fixed-layer" style={{ width: viewport.width }}>
+                  {rowIndex === 0 && (
                     <div
-                      key={`${rowIndex}:${node.id}`}
                       role="columnheader"
-                      aria-colspan={'colSpan' in node ? node.colSpan : 1}
-                      className={['tk-pivot-column-header', pinned && `tk-pivot-pinned-${pinned}`]
-                        .filter(Boolean)
-                        .join(' ')}
-                      data-pinned={pinned || undefined}
-                      style={{ left: getRenderedLeft(renderedHeader), width: size }}
+                      className="tk-pivot-corner"
+                      data-pinned="left"
+                      style={{ left: 0, width: rowHeaderWidth, height: headerHeight }}
                     >
-                      {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
+                      Rows
                     </div>
-                  );
-                })}
+                  )}
+                  {getRenderedHeaders(headerRow)
+                    .filter(({ pinned }) => pinned !== false)
+                    .map((renderedHeader) => {
+                      const { node, pinned, size } = renderedHeader;
+                      return (
+                        <div
+                          key={`${rowIndex}:${node.id}`}
+                          role="columnheader"
+                          aria-colspan={'colSpan' in node ? node.colSpan : 1}
+                          className={`tk-pivot-column-header tk-pivot-pinned-${pinned}`}
+                          data-pinned={pinned}
+                          style={{ ...getRenderedPosition(renderedHeader), width: size }}
+                        >
+                          {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             ))}
           </div>
 
           <div
-            role="rowgroup"
-            className="tk-pivot-body"
-            style={{ height: bodyHeight, width: contentWidth }}
-          >
-            {rowItems.map(({ index, start }) => {
-              const row = rows[index];
-              if (!row) return null;
-              return (
-                <div
-                  key={row.key}
-                  role="row"
-                  aria-level={row.level}
-                  className="tk-pivot-row"
-                  style={{ top: start, height: rowHeight, width: contentWidth }}
-                  onDoubleClick={(event) => publishRowEvent(onRowDoubleClick, row, event)}
-                >
-                  <div
-                    role="rowheader"
-                    aria-expanded={row.hasChildren ? state.expanded[row.key] === true : undefined}
-                    className="tk-pivot-row-header"
-                    data-pinned="left"
-                    style={{
-                      left: viewport.left,
-                      width: rowHeaderWidth,
-                      paddingLeft: 8 + row.level * 16,
-                    }}
-                  >
-                    {row.hasChildren && (
-                      <button
-                        type="button"
-                        aria-label={`${state.expanded[row.key] ? 'Collapse' : 'Expand'} ${String(row.label)}`}
-                        aria-expanded={state.expanded[row.key] === true}
-                        onClick={() => toggleExpanded(row.path)}
-                      >
-                        {state.expanded[row.key] ? '−' : '+'}
-                      </button>
-                    )}
-                    <span>{String(row.label ?? '')}</span>
-                    {row.childState === 'loading' && <span role="status">Loading…</span>}
-                    {row.childState === 'error' && row.error && (
-                      <span role="alert">
-                        {row.error.message}
-                        <button
-                          type="button"
-                          aria-label={`Retry ${String(row.label)}`}
-                          onClick={() => retryRow(row.path)}
-                        >
-                          Retry
-                        </button>
-                      </span>
-                    )}
-                  </div>
-                  {renderedLeaves.map((renderedLeaf) => {
-                    const { leaf, pinned, size } = renderedLeaf;
-                    const focused =
-                      state.focusedCell?.rowId === row.key &&
-                      state.focusedCell.columnId === leaf.id;
-                    return (
-                      <div
-                        key={leaf.id}
-                        role="gridcell"
-                        className={['tk-pivot-cell', pinned && `tk-pivot-pinned-${pinned}`]
-                          .filter(Boolean)
-                          .join(' ')}
-                        data-column-id={leaf.id}
-                        data-row-id={row.key}
-                        data-pinned={pinned || undefined}
-                        data-pivot-cell-id={`${row.key}:${leaf.id}`}
-                        tabIndex={focused ? 0 : -1}
-                        style={{ left: getRenderedLeft(renderedLeaf), width: size }}
-                        onFocus={() => setFocusedCell({ rowId: row.key, columnId: leaf.id })}
-                        onClick={(event) => {
-                          event.currentTarget.focus();
-                          publishCellEvent(
-                            onCellClick,
-                            row.values[leaf.id],
-                            row,
-                            leaf,
-                            false,
-                            event,
-                          );
-                        }}
-                        onDoubleClick={(event) =>
-                          publishCellEvent(
-                            onCellDoubleClick,
-                            row.values[leaf.id],
-                            row,
-                            leaf,
-                            false,
-                            event,
-                          )
-                        }
-                        onKeyDown={(event) => {
-                          if (!onCellClick || (event.key !== 'Enter' && event.key !== ' ')) {
-                            return;
-                          }
-                          event.preventDefault();
-                          publishCellEvent(
-                            onCellClick,
-                            row.values[leaf.id],
-                            row,
-                            leaf,
-                            false,
-                            event,
-                          );
-                        }}
-                      >
-                        {renderCellValue(row.values[leaf.id], row, leaf, false)}
-                      </div>
-                    );
-                  })}
-                </div>
+            ref={scrollRef}
+            className="tk-pivot-body-viewport"
+            onScroll={(event) => {
+              const element = event.currentTarget;
+              gridRef.current?.style.setProperty(
+                '--tk-pivot-scroll-left',
+                `${element.scrollLeft}px`,
               );
-            })}
+              setViewport({
+                top: element.scrollTop,
+                left: element.scrollLeft,
+                height: element.clientHeight || bodyViewportHeight,
+                width: element.clientWidth || width,
+              });
+            }}
+          >
+            <div
+              role="rowgroup"
+              className="tk-pivot-body"
+              style={{ height: bodyHeight, width: contentWidth }}
+            >
+              {rowItems.map(({ index, start }) => {
+                const row = rows[index];
+                if (!row) return null;
+                return (
+                  <div
+                    key={row.key}
+                    role="row"
+                    aria-level={row.level}
+                    className="tk-pivot-row"
+                    style={{ top: start, height: rowHeight, width: contentWidth }}
+                    onDoubleClick={(event) => publishRowEvent(onRowDoubleClick, row, event)}
+                  >
+                    {renderedCenterLeaves.map((renderedLeaf) => renderRowCell(row, renderedLeaf))}
+                    <div className="tk-pivot-row-pinned-layer" style={{ width: viewport.width }}>
+                      <div
+                        role="rowheader"
+                        aria-expanded={
+                          row.hasChildren ? state.expanded[row.key] === true : undefined
+                        }
+                        className="tk-pivot-row-header"
+                        data-pinned="left"
+                        style={{
+                          left: 0,
+                          width: rowHeaderWidth,
+                          paddingLeft: 8 + row.level * 16,
+                        }}
+                      >
+                        {row.hasChildren && (
+                          <button
+                            type="button"
+                            aria-label={`${state.expanded[row.key] ? 'Collapse' : 'Expand'} ${String(row.label)}`}
+                            aria-expanded={state.expanded[row.key] === true}
+                            onClick={() => toggleExpanded(row.path)}
+                          >
+                            {state.expanded[row.key] ? '−' : '+'}
+                          </button>
+                        )}
+                        <span>{String(row.label ?? '')}</span>
+                        {row.childState === 'loading' && <span role="status">Loading…</span>}
+                        {row.childState === 'error' && row.error && (
+                          <span role="alert">
+                            {row.error.message}
+                            <button
+                              type="button"
+                              aria-label={`Retry ${String(row.label)}`}
+                              onClick={() => retryRow(row.path)}
+                            >
+                              Retry
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                      {[...renderedLeftLeaves, ...renderedRightLeaves].map((renderedLeaf) =>
+                        renderRowCell(row, renderedLeaf),
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
 
-            {showGrandTotal && (
-              <div
-                role="row"
-                className="tk-pivot-row tk-pivot-grand-total"
-                data-total="row"
-                style={{
-                  top: rowVirtualizer.getTotalSize(),
-                  height: rowHeight,
-                  width: contentWidth,
-                }}
-              >
+              {status === 'loading' && rows.length === 0 && (
+                <div role="status" className="tk-pivot-state">
+                  {loadingContent}
+                </div>
+              )}
+              {status === 'success' && rows.length === 0 && (
+                <div role="status" className="tk-pivot-state">
+                  {emptyContent}
+                </div>
+              )}
+              {status === 'error' && rows.length === 0 && rootError && (
+                <div role="alert" className="tk-pivot-state">
+                  {errorContent(rootError)}
+                  <button type="button" onClick={retry}>
+                    Retry
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          {showGrandTotal && (
+            <div
+              role="row"
+              className="tk-pivot-footer tk-pivot-grand-total"
+              data-total="row"
+              style={{ height: rowHeight }}
+            >
+              <div className="tk-pivot-scroll-canvas" style={{ width: contentWidth }}>
+                {renderedCenterLeaves.map(renderGrandTotalCell)}
+              </div>
+              <div className="tk-pivot-fixed-layer" style={{ width: viewport.width }}>
                 <div
                   role="rowheader"
                   className="tk-pivot-row-header"
                   data-pinned="left"
-                  style={{ left: viewport.left, width: rowHeaderWidth }}
+                  style={{ left: 0, width: rowHeaderWidth }}
                 >
                   Grand total
                 </div>
-                {renderedLeaves.map((renderedLeaf) => (
-                  <div
-                    key={renderedLeaf.leaf.id}
-                    role="gridcell"
-                    className={[
-                      'tk-pivot-cell',
-                      renderedLeaf.pinned && `tk-pivot-pinned-${renderedLeaf.pinned}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    data-column-id={renderedLeaf.leaf.id}
-                    data-pinned={renderedLeaf.pinned || undefined}
-                    tabIndex={-1}
-                    style={{ left: getRenderedLeft(renderedLeaf), width: renderedLeaf.size }}
-                    onFocus={() => setFocusedCell(null)}
-                    onClick={(event) => {
-                      event.currentTarget.focus();
-                      publishCellEvent(
-                        onCellClick,
-                        result.grandTotals[renderedLeaf.leaf.id],
-                        null,
-                        renderedLeaf.leaf,
-                        true,
-                        event,
-                      );
-                    }}
-                    onDoubleClick={(event) =>
-                      publishCellEvent(
-                        onCellDoubleClick,
-                        result.grandTotals[renderedLeaf.leaf.id],
-                        null,
-                        renderedLeaf.leaf,
-                        true,
-                        event,
-                      )
-                    }
-                    onKeyDown={(event) => {
-                      if (!onCellClick || (event.key !== 'Enter' && event.key !== ' ')) return;
-                      event.preventDefault();
-                      publishCellEvent(
-                        onCellClick,
-                        result.grandTotals[renderedLeaf.leaf.id],
-                        null,
-                        renderedLeaf.leaf,
-                        true,
-                        event,
-                      );
-                    }}
-                  >
-                    {renderCellValue(
-                      result.grandTotals[renderedLeaf.leaf.id],
-                      null,
-                      renderedLeaf.leaf,
-                      true,
-                    )}
-                  </div>
-                ))}
+                {[...renderedLeftLeaves, ...renderedRightLeaves].map(renderGrandTotalCell)}
               </div>
-            )}
-
-            {status === 'loading' && rows.length === 0 && (
-              <div role="status" className="tk-pivot-state">
-                {loadingContent}
-              </div>
-            )}
-            {status === 'success' && rows.length === 0 && (
-              <div role="status" className="tk-pivot-state">
-                {emptyContent}
-              </div>
-            )}
-            {status === 'error' && rows.length === 0 && rootError && (
-              <div role="alert" className="tk-pivot-state">
-                {errorContent(rootError)}
-                <button type="button" onClick={retry}>
-                  Retry
-                </button>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         {pivotControls && (pivotControls.position ?? 'right') === 'right' && (
           <PivotFieldBuilder<TRow>

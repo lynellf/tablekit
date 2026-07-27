@@ -7,6 +7,8 @@ interface DataGridColumnMenuProps<TRow extends RowData> {
   columnLabel: string;
   columns: Array<ColumnDef<TRow, unknown>>;
   controls: Required<DataGridColumnControls>;
+  open: boolean;
+  onOpenChange(open: boolean): void;
   table: Table<TRow>;
 }
 
@@ -28,10 +30,12 @@ export function DataGridColumnMenu<TRow extends RowData>({
   columnLabel,
   columns,
   controls,
+  open,
+  onOpenChange,
   table,
 }: DataGridColumnMenuProps<TRow>) {
-  const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
+  const controlsRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const canOpen = controls.menu || controls.pinning || controls.visibility;
 
@@ -56,6 +60,28 @@ export function DataGridColumnMenu<TRow extends RowData>({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const dismissWhenOutside = (event: Event) => {
+      if (event.target instanceof Node && !controlsRef.current?.contains(event.target)) {
+        onOpenChange(false);
+      }
+    };
+    const dismissOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      onOpenChange(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener('pointerdown', dismissWhenOutside);
+    document.addEventListener('focusin', dismissWhenOutside);
+    document.addEventListener('keydown', dismissOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', dismissWhenOutside);
+      document.removeEventListener('focusin', dismissWhenOutside);
+      document.removeEventListener('keydown', dismissOnEscape);
+    };
+  }, [onOpenChange, open]);
+
   if (!canOpen) return null;
 
   const setSort = (sort: { id: string; desc: boolean } | null) => {
@@ -66,14 +92,14 @@ export function DataGridColumnMenu<TRow extends RowData>({
   };
 
   return (
-    <div className="tk-grid-column-controls">
+    <div ref={controlsRef} className="tk-grid-column-controls">
       <button
         ref={triggerRef}
         type="button"
         className="tk-grid-column-menu-trigger"
         aria-label={`Column controls for ${columnLabel}`}
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => onOpenChange(!open)}
       >
         ⋮
       </button>
