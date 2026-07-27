@@ -387,6 +387,9 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
   const rowRectCallbackRef = useRef<((rect: { width: number; height: number }) => void) | null>(
     null,
   );
+  const rowOffsetCallbackRef = useRef<((offset: number, isScrolling: boolean) => void) | null>(
+    null,
+  );
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => gridRef.current,
@@ -400,8 +403,11 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
       };
     },
     observeElementOffset: (_instance, callback) => {
+      rowOffsetCallbackRef.current = callback;
       callback(viewport.top, false);
-      return () => undefined;
+      return () => {
+        rowOffsetCallbackRef.current = null;
+      };
     },
     rangeExtractor: (range) => {
       const indexes = defaultRangeExtractor(range);
@@ -413,6 +419,9 @@ export function DataGrid<TRow extends RowData>(props: DataGridProps<TRow>) {
   useEffect(() => {
     rowRectCallbackRef.current?.({ width: viewport.width, height: viewport.height });
   }, [viewport.height, viewport.width]);
+  useEffect(() => {
+    rowOffsetCallbackRef.current?.(viewport.top, false);
+  }, [viewport.top]);
   const focusedCenterColumnIndex = focusedCell
     ? centerColumns.findIndex((column) => column.id === focusedCell.columnId)
     : undefined;

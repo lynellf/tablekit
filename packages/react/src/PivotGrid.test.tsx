@@ -318,6 +318,51 @@ describe('PivotGrid', () => {
     expect(footer?.getAttribute('data-total')).toBe('row');
   });
 
+  it('spans a shallow total leaf through the remaining column-hierarchy header rows', () => {
+    render(
+      <PivotGrid
+        data={sales}
+        pivot={{
+          rows: ['region'],
+          columns: ['quarter', 'year'],
+          measures: [{ id: 'sales', field: 'sales', aggregator: 'sum', label: 'Revenue' }],
+          totals: { grandTotalColumn: true },
+        }}
+      />,
+    );
+
+    const totalMeasureHeader = Array.from(
+      document.querySelectorAll<HTMLElement>('.tk-pivot-column-header[data-pinned="right"]'),
+    ).find((header) => header.textContent === 'Revenue');
+
+    expect(totalMeasureHeader).toBeTruthy();
+    expect(totalMeasureHeader?.getAttribute('aria-rowspan')).toBe('2');
+    expect(totalMeasureHeader?.style.height).toBe('64px');
+  });
+
+  it('keeps a right total adjacent to the other columns when the pivot fits the viewport', () => {
+    render(
+      <PivotGrid
+        data={sales}
+        pivot={{
+          rows: ['region'],
+          columns: ['year'],
+          measures: [{ id: 'sales', field: 'sales', aggregator: 'sum', label: 'Revenue' }],
+          totals: { grandTotalColumn: true },
+        }}
+        width={800}
+        rowHeaderWidth={220}
+      />,
+    );
+
+    const totalMeasureHeader = Array.from(
+      document.querySelectorAll<HTMLElement>('.tk-pivot-column-header[data-pinned="right"]'),
+    ).find((header) => header.textContent === 'Revenue');
+
+    expect(totalMeasureHeader?.style.left).toBe('420px');
+    expect(totalMeasureHeader?.style.right).toBe('');
+  });
+
   it('isolates a server child error and retries only that path', async () => {
     let attempt = 0;
     const child: PivotRowNode<Sale> = {
@@ -423,6 +468,53 @@ describe('PivotGrid', () => {
     );
     expect(firstCell?.isConnected).toBe(true);
     expect(screen.getAllByRole('columnheader').length).toBeLessThanOrEqual(9);
+  });
+
+  it('updates the virtual row window when expanded rows are scrolled', async () => {
+    const groupedSales = Array.from({ length: 4 }, (_, regionIndex) =>
+      Array.from({ length: 3 }, (_, quarterIndex) => ({
+        id: `${regionIndex}:${quarterIndex}`,
+        region: `Region ${regionIndex}`,
+        quarter: `Quarter ${quarterIndex}`,
+        year: 2024,
+        sales: regionIndex * 10 + quarterIndex,
+      })),
+    ).flat();
+
+    render(
+      <PivotGrid
+        data={groupedSales}
+        pivot={{
+          rows: ['region', 'quarter'],
+          columns: [],
+          measures: [{ id: 'sales', field: 'sales', aggregator: 'sum' }],
+          totals: { grandTotalRow: false },
+        }}
+        initialState={{
+          expanded: {
+            '["Region 0"]': true,
+            '["Region 1"]': true,
+            '["Region 2"]': true,
+          },
+        }}
+        height={120}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    expect(screen.queryByText('Region 3')).toBeNull();
+
+    const bodyViewport =
+      screen.getByRole('treegrid').querySelector<HTMLElement>('.tk-pivot-body-viewport') ??
+      (() => {
+        throw new Error('Missing pivot body viewport');
+      })();
+    Object.defineProperty(bodyViewport, 'scrollTop', { configurable: true, value: 220 });
+    fireEvent.scroll(bodyViewport);
+
+    await waitFor(() => expect(screen.getByText('Region 3')).toBeTruthy());
+    expect(screen.queryByText('Region 0')).toBeNull();
   });
 
   it('freezes generated column groups atomically around a center-only virtual window', async () => {

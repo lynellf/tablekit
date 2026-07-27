@@ -242,6 +242,11 @@
   overflow: hidden;
 }
 
+.tk-pivot-column-header {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tk-grid-selection-header,
 .tk-grid-selection-cell {
   left: 0;
@@ -438,9 +443,21 @@
 }
 
 .tk-grid-cell:focus,
-.tk-pivot-cell:focus,
+.tk-pivot-cell:focus {
+  z-index: 1;
+}
+
+.tk-grid-cell.tk-grid-pinned-left:focus,
+.tk-grid-cell.tk-grid-pinned-right:focus,
+.tk-pivot-cell.tk-pivot-pinned-left:focus,
+.tk-pivot-cell.tk-pivot-pinned-right:focus,
 .tk-pivot-row-header:focus {
   z-index: 3;
+}
+
+.tk-grid-cell:focus,
+.tk-pivot-cell:focus,
+.tk-pivot-row-header:focus {
   outline: 2px solid #2463eb;
   outline-offset: -2px;
 }

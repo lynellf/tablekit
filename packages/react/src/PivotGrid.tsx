@@ -235,6 +235,9 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
   const rowRectCallbackRef = useRef<((rect: { width: number; height: number }) => void) | null>(
     null,
   );
+  const rowOffsetCallbackRef = useRef<((offset: number, isScrolling: boolean) => void) | null>(
+    null,
+  );
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
@@ -248,8 +251,11 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
       };
     },
     observeElementOffset: (_instance, callback) => {
+      rowOffsetCallbackRef.current = callback;
       callback(viewport.top, false);
-      return () => undefined;
+      return () => {
+        rowOffsetCallbackRef.current = null;
+      };
     },
     rangeExtractor: (range) => {
       const indexes = defaultRangeExtractor(range);
@@ -261,6 +267,9 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
   useEffect(() => {
     rowRectCallbackRef.current?.({ width: viewport.width, height: viewport.height });
   }, [viewport.height, viewport.width]);
+  useEffect(() => {
+    rowOffsetCallbackRef.current?.(viewport.top, false);
+  }, [viewport.top]);
   const leftWidth = columnRegions.left.reduce((total, leaf) => total + leaf.size, 0);
   const rightWidth = columnRegions.right.reduce((total, leaf) => total + leaf.size, 0);
   const focusedCenterColumnIndex = state.focusedCell
@@ -371,6 +380,9 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
       return { left: rowHeaderWidth + rendered.pinnedOffset };
     }
     if (rendered.pinned === 'right') {
+      if (contentWidth <= viewport.width) {
+        return { left: rendered.start };
+      }
       return { right: rendered.pinnedOffset };
     }
     return { left: rendered.start };
@@ -394,6 +406,8 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
         return [{ node, pinned, pinnedOffset, start, size }];
       })
       .sort((a, b) => a.start - b.start);
+  const getHeaderRowSpan = (node: PivotColumnNode | PivotLeafColumn, rowIndex: number): number =>
+    'measureId' in node ? Math.max(1, headerRows.length - rowIndex) : 1;
   const bodyHeight = rowVirtualizer.getTotalSize();
 
   const renderCellValue = (
@@ -608,13 +622,19 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                     .filter(({ pinned }) => pinned === false)
                     .map((renderedHeader) => {
                       const { node, size } = renderedHeader;
+                      const rowSpan = getHeaderRowSpan(node, rowIndex);
                       return (
                         <div
                           key={`${rowIndex}:${node.id}`}
                           role="columnheader"
                           aria-colspan={'colSpan' in node ? node.colSpan : 1}
+                          aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
                           className="tk-pivot-column-header"
-                          style={{ ...getRenderedPosition(renderedHeader), width: size }}
+                          style={{
+                            ...getRenderedPosition(renderedHeader),
+                            width: size,
+                            height: rowSpan > 1 ? rowSpan * HEADER_ROW_HEIGHT : undefined,
+                          }}
                         >
                           {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
                         </div>
@@ -636,14 +656,20 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                     .filter(({ pinned }) => pinned !== false)
                     .map((renderedHeader) => {
                       const { node, pinned, size } = renderedHeader;
+                      const rowSpan = getHeaderRowSpan(node, rowIndex);
                       return (
                         <div
                           key={`${rowIndex}:${node.id}`}
                           role="columnheader"
                           aria-colspan={'colSpan' in node ? node.colSpan : 1}
+                          aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
                           className={`tk-pivot-column-header tk-pivot-pinned-${pinned}`}
                           data-pinned={pinned}
-                          style={{ ...getRenderedPosition(renderedHeader), width: size }}
+                          style={{
+                            ...getRenderedPosition(renderedHeader),
+                            width: size,
+                            height: rowSpan > 1 ? rowSpan * HEADER_ROW_HEIGHT : undefined,
+                          }}
                         >
                           {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
                         </div>

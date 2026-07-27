@@ -183,6 +183,30 @@ describe('DataGrid', () => {
     await waitFor(() => expect(document.querySelectorAll('.tk-grid-row')).toHaveLength(20));
   });
 
+  it('replaces the client virtual row window after scrolling', async () => {
+    render(
+      <DataGrid
+        rows={people}
+        columns={columns}
+        getRowId={(row) => row.id}
+        height={120}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    expect(screen.getByText('Person 01')).toBeTruthy();
+    expect(screen.getByText('Person 06')).toBeTruthy();
+
+    const grid = screen.getByRole('grid');
+    Object.defineProperty(grid, 'scrollTop', { configurable: true, value: 200 });
+    fireEvent.scroll(grid);
+
+    await waitFor(() => expect(screen.getByText('Person 11')).toBeTruthy());
+    expect(screen.getByText('Person 16')).toBeTruthy();
+    expect(screen.queryByText('Person 01')).toBeNull();
+  });
+
   it('fills a server viewport after its height increases without requiring a scroll event', async () => {
     const source: DataSource<Person> = {
       capabilities: {
@@ -211,6 +235,39 @@ describe('DataGrid', () => {
     rerender(renderGrid(400));
 
     await waitFor(() => expect(document.querySelectorAll('.tk-grid-row')).toHaveLength(20));
+  });
+
+  it('replaces the server virtual row window after scrolling', async () => {
+    const source: DataSource<Person> = {
+      capabilities: {
+        sort: 'server',
+        filter: 'server',
+        paginate: 'server',
+        pagination: 'offset',
+      },
+      getRows: async () => ({ rows: people, totalRowCount: people.length }),
+    };
+    render(
+      <DataGrid
+        dataSource={source}
+        columns={columns}
+        getRowId={(row) => row.id}
+        initialState={{ pagination: { pageIndex: 0, pageSize: people.length } }}
+        height={120}
+        rowHeight={20}
+        overscanRows={0}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('Person 06')).toBeTruthy());
+
+    const grid = screen.getByRole('grid');
+    Object.defineProperty(grid, 'scrollTop', { configurable: true, value: 200 });
+    fireEvent.scroll(grid);
+
+    await waitFor(() => expect(screen.getByText('Person 11')).toBeTruthy());
+    expect(screen.getByText('Person 16')).toBeTruthy();
+    expect(screen.queryByText('Person 01')).toBeNull();
   });
 
   it('freezes pinned columns around a center-only virtual window without duplicate cells', async () => {
