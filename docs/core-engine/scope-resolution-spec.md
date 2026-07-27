@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Scope Resolution Spec: First Milestone of `docs/initial-spec.md`
 
 **Status:** Draft for plan review  

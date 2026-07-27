@@ -1,5 +1,5 @@
-import type { ColumnPinningState } from '@lynellf/tablekit-core';
 import type { PivotColumnNode, PivotLeafColumn } from '@lynellf/tablekit-pivot';
+import type { ColumnPinningState } from '@tanstack/react-table';
 
 export type PivotPinnedSide = 'left' | 'right' | false;
 
@@ -54,8 +54,10 @@ export const createPivotColumnRegions = <TRow>(
     }
   }
 
-  const leftIds = new Set(pinning.left);
-  const rightIds = new Set(pinning.right);
+  const leftPinnedIds = pinning.left ?? [];
+  const rightPinnedIds = pinning.right ?? [];
+  const leftIds = new Set(leftPinnedIds);
+  const rightIds = new Set(rightPinnedIds);
   const groups = [...groupsByKey.values()];
   for (const group of groups) {
     const explicitlyLeft = group.leaves.some((leaf) => leftIds.has(leaf.id));
@@ -68,10 +70,10 @@ export const createPivotColumnRegions = <TRow>(
 
     if (explicitlyLeft) {
       group.pinned = 'left';
-      group.pinIndex = pinIndexOf(group.leaves, pinning.left);
+      group.pinIndex = pinIndexOf(group.leaves, leftPinnedIds);
     } else if (explicitlyRight) {
       group.pinned = 'right';
-      group.pinIndex = pinIndexOf(group.leaves, pinning.right);
+      group.pinIndex = pinIndexOf(group.leaves, rightPinnedIds);
     } else {
       const defaultSides = new Set(
         group.leaves.flatMap((leaf) => (leaf.pinned ? [leaf.pinned] : [])),

@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 2 — Registries (sorting + filtering)
 
 **Goal:** Implement the registry pattern from spec §4.3 + P3 (name-referenced serialization). Ship built-in sorting and filtering functions with stable names, plus a registry helper that lets consumers register their own.

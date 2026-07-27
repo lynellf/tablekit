@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 1 B7 Correction — Implementation Plan
 
 **Status:** In Progress

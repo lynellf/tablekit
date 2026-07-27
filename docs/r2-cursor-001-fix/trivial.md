@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # R2-CURSOR-001 Fix — Implementation Trivial
 
 ## Current Request

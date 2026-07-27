@@ -1,20 +1,16 @@
-import { VERSION as CORE_VERSION } from '@lynellf/tablekit-core';
 import { VERSION as PIVOT_VERSION } from '@lynellf/tablekit-pivot';
 import { VERSION as REACT_VERSION } from '@lynellf/tablekit-react';
-import { VERSION as WORKER_VERSION } from '@lynellf/tablekit-worker';
 
 const packages = [
-  { id: 'core', name: 'core', version: CORE_VERSION },
   { id: 'react', name: 'react', version: REACT_VERSION },
   { id: 'pivot', name: 'pivot', version: PIVOT_VERSION },
-  { id: 'worker', name: 'worker', version: WORKER_VERSION },
 ] as const;
 
 export function IntroductionExample() {
   return (
     <section className="reference-intro">
       <div className="reference-intro__hero">
-        <p className="eyebrow">Executable reference · v{CORE_VERSION}</p>
+        <p className="eyebrow">Executable reference · v{REACT_VERSION}</p>
         <h1>Tablekit examples</h1>
         <p>
           Open a component from the sidebar to inspect its live behavior, change supported inputs,

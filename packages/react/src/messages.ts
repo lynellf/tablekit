@@ -3,10 +3,9 @@
  *
  * Spec §10: "Every built-in announcement routes through the messages map for i18n."
  *
- * Consumers override per-key via the `messages` option on `useDataTable` /
- * `usePivotTable`:
+ * Consumers override per-key through rendered grid component props:
  *
- *   useDataTable({ messages: { sortAsc: 'Tri croissant' } })
+ *   <DataGrid messages={{ sortAsc: 'Tri croissant' }} />
  *
  * Keys not present in the consumer map fall back to the English defaults.
  *

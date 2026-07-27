@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 8 — Advanced DataGrid interaction and row models
 
 **Track:** D5 and backlog items 23–24  

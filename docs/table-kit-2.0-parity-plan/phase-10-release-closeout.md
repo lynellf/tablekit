@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 10 — Release evidence, documentation, and closeout
 
 **Track:** cross-cutting release operations  

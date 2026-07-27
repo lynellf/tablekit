@@ -14,8 +14,11 @@ const subpaths = [
   { entry: resolve(src, 'index.ts'), outFile: 'tablekit-pivot.es.js' },
   { entry: resolve(src, 'aggregators/index.ts'), outFile: 'aggregators/index.es.js' },
   { entry: resolve(src, 'engine/index.ts'), outFile: 'engine/index.es.js' },
-  { entry: resolve(src, 'pivotTable/index.ts'), outFile: 'pivotTable/index.es.js' },
   { entry: resolve(src, 'serialize/index.ts'), outFile: 'serialize/index.es.js' },
+  { entry: resolve(src, 'worker/index.ts'), outFile: 'worker/index.es.js' },
+  { entry: resolve(src, 'worker/entry/index.ts'), outFile: 'worker/entry/index.es.js' },
+  { entry: resolve(src, 'worker/protocol/index.ts'), outFile: 'worker/protocol/index.es.js' },
+  { entry: resolve(src, 'server/index.ts'), outFile: 'server/index.es.js' },
 ];
 
 const baseConfig = {

@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Phase 4 — First-release DataGrid headless primitives
 
 **Track:** D3  

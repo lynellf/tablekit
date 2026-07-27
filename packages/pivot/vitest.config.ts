@@ -8,8 +8,15 @@ export default defineConfig({
     exclude: ['**/node_modules', '**/dist'],
   },
   resolve: {
-    alias: {
-      '@lynellf/tablekit-core': new URL('./src/index.ts', import.meta.url).pathname,
-    },
+    alias: [
+      {
+        find: /^@lynellf\/tablekit-pivot$/,
+        replacement: new URL('./src/index.ts', import.meta.url).pathname,
+      },
+      {
+        find: /^@lynellf\/tablekit-pivot\/(.+)$/,
+        replacement: new URL('./src/$1', import.meta.url).pathname,
+      },
+    ],
   },
 });

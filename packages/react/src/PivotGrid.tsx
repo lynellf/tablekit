@@ -9,6 +9,7 @@ import type {
   PivotSortingState,
   RowPathKey,
 } from '@lynellf/tablekit-pivot';
+import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -31,17 +32,19 @@ import {
   createPivotColumnRegions,
   getPivotNodeLeafIds,
 } from './pivotColumnLayout';
-import { type UsePivotTableOptions, usePivotTable } from './usePivotTable';
-import { getVirtualWindow } from './virtualWindow';
+import { usePivotTable } from './usePivotTable';
 import './styles.css';
 
 export type {
   PivotGridCellEvent,
+  PivotGridCellPosition,
   PivotGridControlField,
   PivotGridControls,
+  PivotGridDataVersion,
   PivotGridHandle,
   PivotGridProps,
   PivotGridRowEvent,
+  PivotGridState,
   PivotGridValueContext,
 } from './PivotGrid.types';
 
@@ -106,23 +109,11 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     ref,
     data,
     pivot: pivotConfig,
-    engine,
-    getRowId,
-    dataVersion,
-    initialState,
     state: controlledState,
     onPivotChange,
-    onExpandedChange,
-    onPivotSortingChange,
-    onColumnPinningChange,
-    onFocusedCellChange,
-    onStateChange,
     onRowDoubleClick,
     onCellClick,
     onCellDoubleClick,
-    announcer,
-    messages,
-    tabBehavior,
     height = DEFAULT_HEIGHT,
     width = DEFAULT_WIDTH,
     rowHeight = DEFAULT_ROW_HEIGHT,
@@ -148,25 +139,24 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     setBuilderPivot(null);
   }, [pivotConfig]);
 
-  const options: UsePivotTableOptions<TRow> = {
-    data,
-    pivot: builderPivot ?? pivotConfig,
-    ...(engine ? { engine } : {}),
-    ...(getRowId ? { getRowId } : {}),
-    ...(dataVersion ? { dataVersion } : {}),
-    ...(initialState ? { initialState } : {}),
-    ...(controlledState ? { state: controlledState } : {}),
-    ...(onPivotChange ? { onPivotChange } : {}),
-    ...(onExpandedChange ? { onExpandedChange } : {}),
-    ...(onPivotSortingChange ? { onPivotSortingChange } : {}),
-    ...(onColumnPinningChange ? { onColumnPinningChange } : {}),
-    ...(onFocusedCellChange ? { onFocusedCellChange } : {}),
-    ...(onStateChange ? { onStateChange } : {}),
-    ...(announcer ? { announcer } : {}),
-    ...(messages ? { messages } : {}),
-    ...(tabBehavior ? { tabBehavior } : {}),
-  };
-  const { pivot, state, Announcer, gridRef } = usePivotTable(options);
+  const {
+    state,
+    result,
+    rows,
+    leafColumns,
+    headerRows: engineHeaderRows,
+    status,
+    error: rootError,
+    Announcer,
+    gridRef,
+    setPivot,
+    setExpanded,
+    toggleExpanded,
+    setPivotSorting,
+    setFocusedCell,
+    retry,
+    retryRow,
+  } = usePivotTable(props, builderPivot);
   useImperativeHandle(
     ref,
     () => ({
@@ -175,9 +165,9 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
         const expanded = Object.fromEntries(
           collectAllRowPathKeys(data, state.pivot as PivotConfig<TRow>).map((key) => [key, true]),
         ) as PivotExpansionState;
-        pivot.setExpanded(expanded);
+        setExpanded(expanded);
       },
-      collapseAll: () => pivot.setExpanded({}),
+      collapseAll: () => setExpanded({}),
       sortFirstColumn: () => {
         const currentSort = state.pivotSorting.find(
           (item) => item.level === 0 && item.by === 'label',
@@ -186,10 +176,10 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
           { level: 0, by: 'label', desc: currentSort ? !currentSort.desc : false },
           ...state.pivotSorting.filter((item) => item.level !== 0),
         ];
-        pivot.setPivotSorting(nextSorting);
+        setPivotSorting(nextSorting);
       },
     }),
-    [data, pivot, state.pivot, state.pivotSorting],
+    [data, setExpanded, setPivotSorting, state.pivot, state.pivotSorting],
   );
   const updateBuilderPivot = (updater: (current: PivotConfig<TRow>) => PivotConfig<TRow>) => {
     if (controlledState && 'pivot' in controlledState) {
@@ -198,14 +188,10 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     }
     const next = updater(state.pivot as PivotConfig<TRow>);
     setBuilderPivot(next);
-    onPivotChange?.(next);
+    setPivot(next);
   };
-  const result = pivot.getResult();
-  const rows = pivot.getVisibleRows();
-  const leafColumns = pivot.getLeafColumns();
   const columnRegions = createPivotColumnRegions(leafColumns, state.columnPinning);
   const orderedLeaves = columnRegions.ordered;
-  const engineHeaderRows = pivot.getHeaderRows();
   const hasLeafHeaderRow = engineHeaderRows.some((row) =>
     row.some(({ node }) => 'measureId' in node),
   );
@@ -221,29 +207,60 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
   const focusedRowIndex = state.focusedCell
     ? rows.findIndex((row) => row.key === state.focusedCell?.rowId)
     : undefined;
-  const rowWindow = getVirtualWindow({
-    sizes: rows.map(() => rowHeight),
-    scrollOffset: Math.max(0, viewport.top - headerHeight),
-    viewportSize: viewport.height,
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => gridRef.current,
+    estimateSize: () => rowHeight,
     overscan: overscanRows,
-    ...(focusedRowIndex !== undefined ? { keepIndex: focusedRowIndex } : {}),
+    observeElementRect: (_instance, callback) => {
+      callback({ width: viewport.width, height: viewport.height });
+      return () => undefined;
+    },
+    observeElementOffset: (_instance, callback) => {
+      callback(Math.max(0, viewport.top - headerHeight), false);
+      return () => undefined;
+    },
+    rangeExtractor: (range) => {
+      const indexes = defaultRangeExtractor(range);
+      return focusedRowIndex === undefined || focusedRowIndex < 0
+        ? indexes
+        : [...new Set([...indexes, focusedRowIndex])].sort((a, b) => a - b);
+    },
   });
   const leftWidth = columnRegions.left.reduce((total, leaf) => total + leaf.size, 0);
   const rightWidth = columnRegions.right.reduce((total, leaf) => total + leaf.size, 0);
   const focusedCenterColumnIndex = state.focusedCell
     ? columnRegions.center.findIndex((leaf) => leaf.id === state.focusedCell?.columnId)
     : undefined;
-  const columnWindow = getVirtualWindow({
-    sizes: columnRegions.center.map((leaf) => leaf.size),
-    scrollOffset: viewport.left,
-    viewportSize: Math.max(0, viewport.width - rowHeaderWidth - leftWidth - rightWidth),
+  const columnVirtualizer = useVirtualizer({
+    horizontal: true,
+    count: columnRegions.center.length,
+    enabled: columnRegions.center.length > 0,
+    getScrollElement: () => gridRef.current,
+    estimateSize: (index) => columnRegions.center[index]?.size ?? 0,
     overscan: overscanColumns,
-    ...(focusedCenterColumnIndex !== undefined && focusedCenterColumnIndex >= 0
-      ? { keepIndex: focusedCenterColumnIndex }
-      : {}),
+    observeElementRect: (_instance, callback) => {
+      callback({
+        width: Math.max(0, viewport.width - rowHeaderWidth - leftWidth - rightWidth),
+        height: viewport.height,
+      });
+      return () => undefined;
+    },
+    observeElementOffset: (_instance, callback) => {
+      callback(viewport.left, false);
+      return () => undefined;
+    },
+    rangeExtractor: (range) => {
+      const indexes = defaultRangeExtractor(range);
+      return focusedCenterColumnIndex === undefined || focusedCenterColumnIndex < 0
+        ? indexes
+        : [...new Set([...indexes, focusedCenterColumnIndex])].sort((a, b) => a - b);
+    },
   });
+  const rowItems = rowVirtualizer.getVirtualItems();
+  const columnItems = columnVirtualizer.getVirtualItems();
   const centerStart = rowHeaderWidth + leftWidth;
-  const rightStart = centerStart + columnWindow.totalSize;
+  const rightStart = centerStart + columnVirtualizer.getTotalSize();
   let leftOffset = 0;
   const renderedLeftLeaves: Array<RenderedPivotLeaf<TRow>> = columnRegions.left.map((leaf) => {
     const rendered = {
@@ -268,12 +285,10 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     centerNaturalOffset += leaf.size;
     return rendered;
   });
-  const renderedCenterLeaves: Array<RenderedPivotLeaf<TRow>> = columnWindow.items.flatMap(
-    ({ index }) => {
-      const rendered = allCenterLeafLayouts[index];
-      return rendered ? [rendered] : [];
-    },
-  );
+  const renderedCenterLeaves: Array<RenderedPivotLeaf<TRow>> = columnItems.flatMap(({ index }) => {
+    const rendered = allCenterLeafLayouts[index];
+    return rendered ? [rendered] : [];
+  });
   const rightPinnedOffsets = new Map<string, number>();
   let rightOffset = 0;
   for (let index = columnRegions.right.length - 1; index >= 0; index -= 1) {
@@ -336,9 +351,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
         return [{ node, pinned, pinnedOffset, start, size }];
       })
       .sort((a, b) => a.start - b.start);
-  const bodyHeight = rowWindow.totalSize + (showGrandTotal ? rowHeight : 0);
-  const status = pivot.getStatus();
-  const rootError = pivot.getError();
+  const bodyHeight = rowVirtualizer.getTotalSize() + (showGrandTotal ? rowHeight : 0);
 
   const renderCellValue = (
     value: unknown,
@@ -375,7 +388,15 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     });
 
   const onGridKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const focused = pivot.getState().focusedCell;
+    const activeCell = document.activeElement as HTMLElement | null;
+    const focused =
+      state.focusedCell ??
+      (activeCell?.dataset.rowId && activeCell.dataset.columnId
+        ? {
+            rowId: activeCell.dataset.rowId,
+            columnId: activeCell.dataset.columnId,
+          }
+        : null);
     if (!focused || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key))
       return;
     const rowIndex = rows.findIndex((row) => row.key === focused.rowId);
@@ -399,7 +420,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
     const nextLeaf = orderedLeaves[nextColumnIndex];
     if (!nextRow || !nextLeaf) return;
     event.preventDefault();
-    pivot.setFocusedCell({ rowId: nextRow.key, columnId: nextLeaf.id });
+    setFocusedCell({ rowId: nextRow.key, columnId: nextLeaf.id });
   };
 
   useEffect(() => {
@@ -431,8 +452,9 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
           />
         )}
         <div
-          {...pivot.getGridProps()}
           ref={gridRef}
+          role="treegrid"
+          tabIndex={-1}
           className="tk-pivot-viewport"
           aria-label={ariaLabel}
           aria-busy={status === 'loading' ? true : undefined}
@@ -469,14 +491,15 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                   return (
                     <div
                       key={`${rowIndex}:${node.id}`}
-                      {...pivot.getHeaderProps(node)}
+                      role="columnheader"
+                      aria-colspan={'colSpan' in node ? node.colSpan : 1}
                       className={['tk-pivot-column-header', pinned && `tk-pivot-pinned-${pinned}`]
                         .filter(Boolean)
                         .join(' ')}
                       data-pinned={pinned || undefined}
                       style={{ left: getRenderedLeft(renderedHeader), width: size }}
                     >
-                      {renderSlot(labelOf(node), { node, pivot }, String(labelOf(node) ?? ''))}
+                      {renderSlot(labelOf(node), { node, state }, String(labelOf(node) ?? ''))}
                     </div>
                   );
                 })}
@@ -485,23 +508,25 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
           </div>
 
           <div
-            {...pivot.getBodyProps()}
+            role="rowgroup"
             className="tk-pivot-body"
             style={{ height: bodyHeight, width: contentWidth }}
           >
-            {rowWindow.items.map(({ index, start }) => {
+            {rowItems.map(({ index, start }) => {
               const row = rows[index];
               if (!row) return null;
               return (
                 <div
                   key={row.key}
-                  {...pivot.getRowProps(row)}
+                  role="row"
+                  aria-level={row.level}
                   className="tk-pivot-row"
                   style={{ top: start, height: rowHeight, width: contentWidth }}
                   onDoubleClick={(event) => publishRowEvent(onRowDoubleClick, row, event)}
                 >
                   <div
-                    {...pivot.getRowHeaderProps(row)}
+                    role="rowheader"
+                    aria-expanded={row.hasChildren ? state.expanded[row.key] === true : undefined}
                     className="tk-pivot-row-header"
                     data-pinned="left"
                     style={{
@@ -511,7 +536,12 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                     }}
                   >
                     {row.hasChildren && (
-                      <button type="button" {...pivot.getToggleExpandedProps(row)}>
+                      <button
+                        type="button"
+                        aria-label={`${state.expanded[row.key] ? 'Collapse' : 'Expand'} ${String(row.label)}`}
+                        aria-expanded={state.expanded[row.key] === true}
+                        onClick={() => toggleExpanded(row.path)}
+                      >
                         {state.expanded[row.key] ? '−' : '+'}
                       </button>
                     )}
@@ -523,7 +553,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                         <button
                           type="button"
                           aria-label={`Retry ${String(row.label)}`}
-                          onClick={() => pivot.retryRow(row.path)}
+                          onClick={() => retryRow(row.path)}
                         >
                           Retry
                         </button>
@@ -543,11 +573,12 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                           .filter(Boolean)
                           .join(' ')}
                         data-column-id={leaf.id}
+                        data-row-id={row.key}
                         data-pinned={pinned || undefined}
                         data-pivot-cell-id={`${row.key}:${leaf.id}`}
                         tabIndex={focused ? 0 : -1}
                         style={{ left: getRenderedLeft(renderedLeaf), width: size }}
-                        onFocus={() => pivot.setFocusedCell({ rowId: row.key, columnId: leaf.id })}
+                        onFocus={() => setFocusedCell({ rowId: row.key, columnId: leaf.id })}
                         onClick={(event) => {
                           event.currentTarget.focus();
                           publishCellEvent(
@@ -597,7 +628,11 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                 role="row"
                 className="tk-pivot-row tk-pivot-grand-total"
                 data-total="row"
-                style={{ top: rowWindow.totalSize, height: rowHeight, width: contentWidth }}
+                style={{
+                  top: rowVirtualizer.getTotalSize(),
+                  height: rowHeight,
+                  width: contentWidth,
+                }}
               >
                 <div
                   role="rowheader"
@@ -621,7 +656,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
                     data-pinned={renderedLeaf.pinned || undefined}
                     tabIndex={-1}
                     style={{ left: getRenderedLeft(renderedLeaf), width: renderedLeaf.size }}
-                    onFocus={() => pivot.setFocusedCell(null)}
+                    onFocus={() => setFocusedCell(null)}
                     onClick={(event) => {
                       event.currentTarget.focus();
                       publishCellEvent(
@@ -680,7 +715,7 @@ export function PivotGrid<TRow>(props: PivotGridProps<TRow>) {
             {status === 'error' && rows.length === 0 && rootError && (
               <div role="alert" className="tk-pivot-state">
                 {errorContent(rootError)}
-                <button type="button" onClick={pivot.retry}>
+                <button type="button" onClick={retry}>
                   Retry
                 </button>
               </div>

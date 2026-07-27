@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Layout Recipe — Virtualization + Sticky Pinning
 
 > Recipe — Last verified against v2.2.0

@@ -1,4 +1,11 @@
+<!-- Historical: true -->
 # Table Kit 2.0 Parity Assessment and Remaining-Work Specification
+
+> **Superseded:** The build-versus-adopt direction in this historical
+> assessment is superseded by
+> [`ADR-0001`](./decisions/0001-adopt-tanstack-and-remove-tablekit-core.md).
+> Active implementation is routed through
+> [`docs/tanstack-architecture-reset/plan.md`](./tanstack-architecture-reset/plan.md).
 
 **Repository:** `lynellf/table-kit`  
 **Reviewed commit:** `634ad537469b453e9d791cf1b5cd70a4b656b688`  

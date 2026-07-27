@@ -3,10 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright configuration for table-kit e2e tests.
  *
- * These tests verify the pivot engine with seeded data and capture
- * browser screenshots for visual verification.
- *
- * The tests run against the m4-pivot-main-thread example app.
+ * These tests verify the v3 DataGrid and PivotGrid product through the
+ * Storybook showcase.
  */
 export default defineConfig({
   testDir: __dirname,
@@ -30,9 +28,9 @@ export default defineConfig({
   ],
 
   // Exclude vitest workspace patterns
-  testMatch: '*.spec.ts',
+  testMatch: 'examples-showcase.spec.ts',
 
-  // Start the example app for e2e tests
+  // Start the showcase for e2e tests.
   webServer: {
     command: 'pnpm run dev:e2e',
     url: 'http://localhost:5173',

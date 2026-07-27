@@ -1,3 +1,4 @@
+<!-- Historical: true -->
 # Verification Gate Run — Phase 1 Foundation
 
 **Purpose:** Run verification commands per review-decision.md for R7 re-gate

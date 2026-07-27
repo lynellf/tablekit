@@ -63,7 +63,6 @@ export function PivotBuilderExample({
             },
           }}
           pivotControls={{ fields, position: 'right' }}
-          getRowId={(row) => row.id}
           height={height}
           width={780}
           rowHeight={38}

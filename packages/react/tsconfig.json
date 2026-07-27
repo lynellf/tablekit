@@ -2,6 +2,15 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "display": "@lynellf/tablekit-react",
   "extends": "../../tsconfig.base.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx", "../core/src/**/*.ts", "../pivot/src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../pivot/src/*.ts",
+    "../pivot/src/aggregators/**/*.ts",
+    "../pivot/src/engine/**/*.ts",
+    "../pivot/src/serialize/**/*.ts",
+    "../pivot/src/worker/**/*.ts",
+    "../pivot/src/server/**/*.ts"
+  ],
   "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"]
 }

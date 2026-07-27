@@ -8,15 +8,14 @@
   },
   "scripts": {
     "dev": "storybook dev --port 5176 --no-open",
+    "dev:e2e": "storybook dev --port 5173 --no-open",
     "build": "tsc -b && storybook build --output-dir dist/client && node scripts/prepare-sites-output.mjs",
     "preview": "vite preview --outDir dist/client --port 4173",
     "test:hosting": "node --test tests/sites-build-layout.test.mjs"
   },
   "dependencies": {
-    "@lynellf/tablekit-core": "workspace:*",
     "@lynellf/tablekit-pivot": "workspace:*",
     "@lynellf/tablekit-react": "workspace:*",
-    "@lynellf/tablekit-worker": "workspace:*",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

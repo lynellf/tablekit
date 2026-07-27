@@ -100,6 +100,26 @@ const createServerResult = (): PivotResult<Sale> => ({
 });
 
 describe('PivotGrid', () => {
+  it('recomputes when the pivot prop changes', async () => {
+    const { rerender } = render(<PivotGrid data={sales} pivot={{ ...config, filters: [] }} />);
+
+    expect(screen.getByText('West')).toBeTruthy();
+    expect(screen.getByText('East')).toBeTruthy();
+
+    rerender(
+      <PivotGrid
+        data={sales}
+        pivot={{
+          ...config,
+          filters: [{ field: 'region', op: 'equals', value: 'East' }],
+        }}
+      />,
+    );
+
+    await waitFor(() => expect(screen.queryByText('West')).toBeNull());
+    expect(screen.getByText('East')).toBeTruthy();
+  });
+
   it('publishes cell and row interaction events with pivot coordinates and totals context', () => {
     const onCellClick = vi.fn();
     const onCellDoubleClick = vi.fn();
@@ -109,7 +129,6 @@ describe('PivotGrid', () => {
       <PivotGrid
         data={sales}
         pivot={config}
-        getRowId={(row) => row.id}
         onCellClick={onCellClick}
         onCellDoubleClick={onCellDoubleClick}
         onRowDoubleClick={onRowDoubleClick}
@@ -177,9 +196,7 @@ describe('PivotGrid', () => {
   it('exposes adapter commands for row paths, expansion, collapse, and first-column sorting', async () => {
     const ref = createRef<PivotGridHandle>();
     const unfilteredConfig: PivotConfig<Sale> = { ...config, filters: [] };
-    render(
-      <PivotGrid ref={ref} data={sales} pivot={unfilteredConfig} getRowId={(row) => row.id} />,
-    );
+    render(<PivotGrid ref={ref} data={sales} pivot={unfilteredConfig} />);
 
     expect(ref.current?.getAllRowPathKeys()).toEqual([
       '["West"]',
@@ -255,7 +272,7 @@ describe('PivotGrid', () => {
   });
 
   it('renders filtered aggregation, generated headers, totals, and expansion ARIA', async () => {
-    render(<PivotGrid data={sales} pivot={config} getRowId={(row) => row.id} height={260} />);
+    render(<PivotGrid data={sales} pivot={config} height={260} />);
 
     expect(screen.getByRole('treegrid')).toBeTruthy();
     expect(
@@ -305,7 +322,7 @@ describe('PivotGrid', () => {
         return [child];
       }),
     };
-    render(<PivotGrid data={sales} pivot={config} engine={engine} getRowId={(row) => row.id} />);
+    render(<PivotGrid data={sales} pivot={config} engine={engine} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand West' }));
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'West failedRetry');
@@ -331,7 +348,7 @@ describe('PivotGrid', () => {
       }),
     };
 
-    render(<PivotGrid data={sales} pivot={config} engine={engine} getRowId={(row) => row.id} />);
+    render(<PivotGrid data={sales} pivot={config} engine={engine} />);
 
     expect(await screen.findByRole('alert')).toHaveProperty(
       'textContent',
@@ -360,7 +377,6 @@ describe('PivotGrid', () => {
           measures: [{ id: 'sales', field: 'sales', aggregator: 'sum' }],
           totals: { grandTotalColumn: false },
         }}
-        getRowId={(row) => row.id}
         height={120}
         width={260}
         rowHeight={20}
@@ -413,7 +429,6 @@ describe('PivotGrid', () => {
             right: ['[2001]::sales'],
           },
         }}
-        getRowId={(row) => row.id}
         height={140}
         width={900}
         rowHeight={20}
@@ -471,7 +486,6 @@ describe('PivotGrid', () => {
         <PivotGrid
           data={sales}
           pivot={config}
-          getRowId={(row) => row.id}
           initialState={{
             columnPinning: {
               left: ['[2024]::sales_sum'],
@@ -484,9 +498,7 @@ describe('PivotGrid', () => {
   });
 
   it('keeps the pivot builder opt-in and updates hierarchies, filters, and aggregation', async () => {
-    const { unmount } = render(
-      <PivotGrid data={sales} pivot={config} getRowId={(row) => row.id} />,
-    );
+    const { unmount } = render(<PivotGrid data={sales} pivot={config} />);
     expect(screen.queryByRole('complementary', { name: 'Pivot controls' })).toBeNull();
     unmount();
 
@@ -494,7 +506,6 @@ describe('PivotGrid', () => {
       <PivotGrid
         data={sales}
         pivot={config}
-        getRowId={(row) => row.id}
         pivotControls={{
           position: 'right',
           fields: [
@@ -536,7 +547,7 @@ describe('PivotGrid', () => {
   });
 
   it('moves pivot dimensions between hierarchy zones with native drag and drop', () => {
-    render(<PivotGrid data={sales} pivot={config} getRowId={(row) => row.id} pivotControls />);
+    render(<PivotGrid data={sales} pivot={config} pivotControls />);
 
     const transfer = {
       effectAllowed: 'move',

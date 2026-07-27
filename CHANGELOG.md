@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] — 2026-07-26
+
+### Changed
+
+- Rebuilt `DataGrid` on TanStack Table and TanStack Virtual.
+- Routed `PivotGrid` expansion through TanStack Table and replaced owned
+  virtualization with TanStack Virtual.
+- Reduced the workspace to two publishable packages: React and pivot.
+- Folded worker protocol, worker entry, and server execution into pivot
+  subpaths.
+- Moved the asynchronous `DataSource` contract into the React package.
+
+### Removed
+
+- Removed `@lynellf/tablekit-core` and its custom table state, row pipeline,
+  column model, and virtualization engine.
+- Removed the standalone `@lynellf/tablekit-worker` package.
+- Removed the v2 headless React hook and re-export surface.
+- Removed the public `@lynellf/tablekit-pivot/pivotTable` subpath.
+
 ## [2.2.0] — 2026-07-25
 
 ### Added

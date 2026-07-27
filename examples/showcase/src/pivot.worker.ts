@@ -1,3 +1,3 @@
-import { createWorkerEntry } from '@lynellf/tablekit-worker';
+import { createWorkerEntry } from '@lynellf/tablekit-pivot/worker/entry';
 
 createWorkerEntry();

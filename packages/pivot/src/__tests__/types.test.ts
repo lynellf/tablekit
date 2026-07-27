@@ -13,7 +13,6 @@ import type {
   MeasureDef,
   PivotConfig,
   PivotFilter,
-  PivotTableState,
   TotalsConfig,
 } from '../types';
 
@@ -92,21 +91,5 @@ describe('§9.2 Aggregator interface', () => {
     expect(sum.merge(3, 7)).toBe(10);
     // finalize is optional; when absent the accumulate result IS the output
     expect(sum.finalize).toBeUndefined();
-  });
-});
-
-describe('§4.2 PivotTableState', () => {
-  it('has pivot, expanded, pivotSorting, plus shared slices', () => {
-    const state: PivotTableState = {
-      pivot: { rows: [], columns: [], measures: [] },
-      expanded: {},
-      pivotSorting: [],
-      columnPinning: { left: [], right: [] },
-      columnSizing: {},
-      columnSizingInfo: null,
-      focusedCell: null,
-    };
-    expect(state.pivot.measures).toEqual([]);
-    expect(state.expanded).toEqual({});
   });
 });
